@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include "zstr.hpp"
+#include "zstr.cpp"
 
 void usage(std::ostream& os, const std::string& prog_name)
 {
@@ -115,6 +115,8 @@ int main(int argc, char * argv[])
             std::exit(EXIT_FAILURE);
         }
     }
+    std::cout << "output_file:" << output_file << std::endl;
+
     //
     // Gather files to process
     //
@@ -126,6 +128,11 @@ int main(int argc, char * argv[])
     //
     // Perform compression/decompression
     //
+    for(const auto & file : file_v)
+    {
+        std::cout << file << std::endl;
+    }
+    
     if (compress)
     {
         compress_files(file_v, output_file);
