@@ -10,6 +10,8 @@ set(CMAKE_CXX_FLAGS "-std=c++14 -g -Wall -Werror -z defs -mcmodel=medium")
 
 add_executable(main ${SRC_FILES})
 
-include_directories(${ZLIB_INCLUDE_DIR})
+include_directories(./zlibwrapper ${ZLIB_INCLUDE_DIR})
 
-target_link_libraries(main ${ZLIB_LIBRARY})
+add_subdirectory(zlibwrapper)
+
+target_link_libraries(main zlibwrapper ${ZLIB_LIBRARY})

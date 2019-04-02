@@ -6,6 +6,7 @@ Makefile
 zlibwrapper/cmake_install.cmake
 zlibwrapper/CMakeCache.txt
 zlibwrapper/Makefile
+zlibwrapper/CMakeFiles/*
 zlibwrapper/*.a
 zlibwrapper/*.o
 *.a

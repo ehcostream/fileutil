@@ -2,6 +2,10 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <stdio.h>
+#include <ostream>
+#include <unistd.h>
+#include <time.h>
 #include "zstr.cpp"
 
 void usage(std::ostream& os, const std::string& prog_name)
@@ -23,87 +27,61 @@ void cat_stream(std::istream& is, std::ostream& os)
         os.write(buff, cnt);
     }
     delete [] buff;
-} // cat_stream
+}
 
-void decompress_files(const std::vector< std::string >& file_v, const std::string& output_file)
+void Compress(const std::string& rstrIn, const std::string& rstrOut)
 {
-    //
-    // Set up sink ostream
-    //
-    std::unique_ptr< std::ofstream > ofs_p;
-    std::ostream * os_p = &std::cout;
-    if (not output_file.empty())
-    {
-        ofs_p = std::unique_ptr< std::ofstream >(new strict_fstream::ofstream(output_file));
-        os_p = ofs_p.get();
-    }
-    //
-    // Process files
-    //
-    for (const auto& f : file_v)
-    {
-        //
-        // If `f` is a file, create a zstr::ifstream, else (it is stdin) create a zstr::istream wrapper
-        //
-        std::unique_ptr< std::istream > is_p =
-            (f != "-"
-             ? std::unique_ptr< std::istream >(new zstr::ifstream(f))
-             : std::unique_ptr< std::istream >(new zstr::istream(std::cin)));
-        //
-        // Cat stream
-        //
-        cat_stream(*is_p, *os_p);
-    }
-} // decompress_files
-
-void compress_files(const std::vector< std::string >& file_v, const std::string& output_file)
-{
-    //
-    // Set up compression sink ostream
-    //
-    std::unique_ptr< std::ostream > os_p =
-        (not output_file.empty()
-         ? std::unique_ptr< std::ostream >(new zstr::ofstream(output_file))
+    std::unique_ptr< std::ostream > osp =
+        (not rstrOut.empty()
+         ? std::unique_ptr< std::ostream >(new zstr::ofstream(rstrOut))
          : std::unique_ptr< std::ostream >(new zstr::ostream(std::cout)));
-    //
-    // Process files
-    //
-    for (const auto& f : file_v)
+
+    std::unique_ptr< std::ifstream > ifsp;
+    std::istream * isp = &std::cin;
+
+    ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(rstrIn));
+    isp = ifsp.get();
+
+    cat_stream(*isp, *osp);
+}
+
+void Uncompress(const std::string& rstrIn, const std::string& rstrOut)
+{
+    std::unique_ptr< std::ofstream > ofsp;
+    std::ostream * osp = &std::cout;
+    if (not rstrOut.empty())
     {
-        //
-        // If `f` is a file, create an ifstream, else read stdin
-        //
-        std::unique_ptr< std::ifstream > ifs_p;
-        std::istream * is_p = &std::cin;
-        if (f != "-")
-        {
-            ifs_p = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(f));
-            is_p = ifs_p.get();
-        }
-        //
-        // Cat stream
-        //
-        cat_stream(*is_p, *os_p);
+        ofsp = std::unique_ptr< std::ofstream >(new strict_fstream::ofstream(rstrOut));
+        osp = ofsp.get();
     }
-} // compress_files
+
+    std::unique_ptr< std::istream > isp = std::unique_ptr< std::istream >(new zstr::ifstream(rstrIn));
+
+    cat_stream(*isp, *osp);
+}
 
 int main(int argc, char * argv[])
 {
-    bool compress = false;
-    std::string output_file;
+    bool bCompress = false;
+    std::string strOutFile;
+    std::string strInFile;
     int c;
-    while ((c = getopt(argc, argv, "co:h?")) != -1)
+    while ((c = getopt(argc, argv, "uco:h?")) != -1)
     {
         switch (c)
         {
         case 'c':
-            compress = true;
+            bCompress = true;
+            strInFile = argv[optind];
             break;
         case 'o':
             if (std::string("-") != optarg)
             {
-                output_file = optarg;
+                strOutFile = optarg;
             }
+            break;
+        case 'u':
+            strInFile = argv[optind];
             break;
         case '?':
         case 'h':
@@ -115,30 +93,50 @@ int main(int argc, char * argv[])
             std::exit(EXIT_FAILURE);
         }
     }
-    std::cout << "output_file:" << output_file << std::endl;
 
-    //
-    // Gather files to process
-    //
-    std::vector< std::string > file_v(&argv[optind], &argv[argc]);
-    //
-    // With no other arguments, process stdin
-    //
-    if (file_v.empty()) file_v.push_back("-");
-    //
-    // Perform compression/decompression
-    //
-    for(const auto & file : file_v)
-    {
-        std::cout << file << std::endl;
-    }
+    uint32_t dwNow = time(nullptr);
+
     
-    if (compress)
+    
+
+    std::cout << "output_file:" << strOutFile << std::endl;
+
+    if (bCompress)
     {
-        compress_files(file_v, output_file);
+        std::ostringstream ossTmp;
+        ossTmp << "/tmp/zlibcompress_tmp_" << dwNow << ".tar";
+        std::string strTarFile = ossTmp.str();
+        std::ostringstream oss;
+        oss << "tar" << " -cvf " << ossTmp.str() << " " << strInFile;
+        std::cout << oss.str() << std::endl;
+
+        FILE* fp = popen(oss.str().c_str(), "w");
+        pclose(fp);
+        Compress(strTarFile, strOutFile);
+        std::ostringstream ossdel;
+        ossdel << "rm -rf " << strTarFile;
+        FILE* fpd = popen(ossdel.str().c_str(), "w");
+        pclose(fpd);
     }
     else
     {
-        decompress_files(file_v, output_file);
+        
+        //decompress_files(strInFile, strOutFiles);
+        std::ostringstream ossTmp;
+        ossTmp << "/tmp/zlibuncompress_tmp_" << dwNow << ".tar";
+        std::string strUntarFile = ossTmp.str();
+
+        Uncompress(strInFile, strUntarFile);
+        std::ostringstream ossUnTar;
+        ossUnTar << "tar" << " -xvf " << strUntarFile << " -C " << strOutFile;
+        FILE* fpuntar = popen(ossUnTar.str().c_str(), "w");
+        pclose(fpuntar);
+
+        std::ostringstream ossdel;
+        ossdel << "rm -rf " << strUntarFile;
+        std::cout << ossdel.str() << std::endl;
+        FILE* fpd = popen(ossdel.str().c_str(), "w");
+        pclose(fpd);
     }
+    
 }
