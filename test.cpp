@@ -60,13 +60,64 @@ void Uncompress(const std::string& rstrIn, const std::string& rstrOut)
     cat_stream(*isp, *osp);
 }
 
+int ReverseFile(const std::string& rstrSource, const std::string& rstrOut)
+{
+    std::cout << "source:" << rstrSource << "out:" << rstrOut << std::endl;
+    std::ifstream in(rstrSource, std::ifstream::in | std::ifstream::binary);
+    std::ofstream out(rstrOut, std::ifstream::out | std::ifstream::trunc);
+    int nError = 0;
+    int n = 0;
+    do
+    {
+        if(!in.is_open())
+        {
+            nError = 1;
+            break;
+        }
+        if(!out.is_open())
+        {
+            nError = 2;
+            break;
+        }
+        //open file normally
+        char c;
+        in.seekg (0, in.end);
+        int length = in.tellg();
+        in.seekg (0, in.beg);
+        std::cout << "f length :" << length << std::endl;
+        while(n < length)
+        {
+            in.get(c);
+            char tmp = ~c;
+            out << tmp;
+            n++;
+        }
+        in.close();
+        out.close();
+
+    }while(false);
+
+    std::cout << "file length :" << n << std::endl;
+
+    if(nError == 0 )
+    {
+        std::cout << "encode file successfully" << std::endl;
+    }
+    else
+    {
+        std::cout << "encode file failed." << std::endl;
+    }
+    return nError;
+}
+
 int main(int argc, char * argv[])
 {
     bool bCompress = false;
+    int nEncode = -1;
     std::string strOutFile;
     std::string strInFile;
     int c;
-    while ((c = getopt(argc, argv, "uco:h?")) != -1)
+    while ((c = getopt(argc, argv, "csou:hde?")) != -1)
     {
         switch (c)
         {
@@ -74,11 +125,12 @@ int main(int argc, char * argv[])
             bCompress = true;
             strInFile = argv[optind];
             break;
+        case 's':
+            strInFile = argv[optind];
+            std::cout << strInFile << std::endl;
+            break;
         case 'o':
-            if (std::string("-") != optarg)
-            {
-                strOutFile = optarg;
-            }
+            strOutFile = argv[optind];
             break;
         case 'u':
             strInFile = argv[optind];
@@ -88,16 +140,33 @@ int main(int argc, char * argv[])
             usage(std::cout, argv[0]);
             std::exit(EXIT_SUCCESS);
             break;
+        case 'd':
+            nEncode = 0;
+            break;
+        case 'e':
+            nEncode = 1;
+            break;
         default:
             usage(std::cerr, argv[0]);
             std::exit(EXIT_FAILURE);
         }
     }
 
-    uint32_t dwNow = time(nullptr);
+    if(nEncode > -1)
+    {
+        if(nEncode)
+        {
+            ReverseFile(strInFile, std::string("./test.spec"));
+        }
+        else
+        {
+            ReverseFile(strInFile, std::string("./test.tar.gz"));
+        }
+        
+        return 0;
+    }
 
-    
-    
+    uint32_t dwNow = time(nullptr);    
 
     std::cout << "output_file:" << strOutFile << std::endl;
 
@@ -113,6 +182,7 @@ int main(int argc, char * argv[])
         FILE* fp = popen(oss.str().c_str(), "w");
         pclose(fp);
         Compress(strTarFile, strOutFile);
+
         std::ostringstream ossdel;
         ossdel << "rm -rf " << strTarFile;
         FILE* fpd = popen(ossdel.str().c_str(), "w");
