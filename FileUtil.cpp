@@ -7,6 +7,7 @@
  */
 #include "FileUtil.h"
 
+
 int CFileUtil::Compress(const std::string& rstrIn, const std::string& rstrOut)
 {
     uint32_t dwNow = time(nullptr);
@@ -77,20 +78,25 @@ int CFileUtil::Uncompress(const std::string& rstrIn, const std::string& rstrOut)
     return 0;
 }
 
-int CFileUtil::EncodeFile(const std::string& rstrSource, const std::string& rstrEncodeFile)
+int CFileUtil::EncodeFile(const std::string& rstrSource, const std::string& rstrEncodeFileDir)
 {
     //加密后文件名称：源文件文件名+.spec后缀
-    //TODO
-    ReverseStream(rstrSource, rstrEncodeFile);
+    std::string strFileName;
+    GetFileName(rstrSource, strFileName);
+    std::ostringstream oss;
+    oss << rstrEncodeFileDir << "/" << strFileName << ".spec";
+    ReverseStream(rstrSource, oss.str());
     return 0;
 }
 
-int CFileUtil::DecodeFile(const std::string& rstrEncodeFile, const std::string& rstrDecodeFile)
+int CFileUtil::DecodeFile(const std::string& rstrEncodeFile, const std::string& rstrDecodeFileDir)
 {
-    //检查是否是spec加密文件
-    //TODO
     //默认解密为.tar.gz结尾的文件
-    ReverseStream(rstrEncodeFile, rstrDecodeFile);
+    std::string strFileName;
+    GetFileName(rstrEncodeFile, strFileName);
+    std::ostringstream oss;
+    oss << rstrDecodeFileDir << "/" << strFileName << ".tar.gz";
+    ReverseStream(rstrEncodeFile, oss.str());
     return 0;
 }
 
@@ -134,7 +140,7 @@ int CFileUtil::ReverseStream(const std::string& rstrSource, const std::string& r
         in.seekg (0, in.end);
         int length = in.tellg();
         in.seekg (0, in.beg);
-        std::cout << "f length :" << length << std::endl;
+        std::cout << "before length :" << length << std::endl;
         while(n < length)
         {
             in.get(c);
@@ -147,7 +153,7 @@ int CFileUtil::ReverseStream(const std::string& rstrSource, const std::string& r
 
     }while(false);
 
-    std::cout << "file length :" << n << std::endl;
+    std::cout << "after length :" << n << std::endl;
 
     if(nError == 0 )
     {
@@ -158,4 +164,19 @@ int CFileUtil::ReverseStream(const std::string& rstrSource, const std::string& r
         std::cout << "encode file failed." << std::endl;
     }
     return nError;
+}
+
+bool CFileUtil::GetFileName(const std::string& rstrFilePath, std::string& rstrFileName)
+{
+    std::vector<std::string> stFilePathPieces;
+    boost::split(stFilePathPieces, rstrFilePath, boost::is_any_of("."));
+    if(stFilePathPieces.size() > 0 && !stFilePathPieces[0].empty())
+    {
+        rstrFileName = stFilePathPieces[0];
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }

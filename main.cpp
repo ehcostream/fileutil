@@ -12,7 +12,7 @@ int main(int argc, char** argv)
 
     bool bCompress = false;
     int nEncode = -1;
-    std::string strOutFile;
+    std::string strOut;
     std::string strInFile;
     int c;
     while ((c = getopt(argc, argv, "csou:hde?")) != -1)
@@ -27,7 +27,7 @@ int main(int argc, char** argv)
             strInFile = argv[optind];
             break;
         case 'o':
-            strOutFile = argv[optind];
+            strOut = argv[optind];
             break;
         case 'u':
             strInFile = optarg;
@@ -53,24 +53,24 @@ int main(int argc, char** argv)
     {
         if(nEncode)
         {
-            CFileUtil::EncodeFile(strInFile, std::string("./test.spec"));
+            CFileUtil::EncodeFile(strInFile, strOut);
         }
         else
         {
-            CFileUtil::DecodeFile(strInFile, std::string("./test.tar.gz"));
+            CFileUtil::DecodeFile(strInFile, strOut);
         }
         return 0;
     }
 
-    std::cout << "input_file:" << strInFile<< ",output_file:" << strOutFile << std::endl;
+    std::cout << "input_file:" << strInFile<< ",output_file:" << strOut << std::endl;
 
     if (bCompress)
     {
-        CFileUtil::Compress(strInFile, strOutFile);
+        CFileUtil::Compress(strInFile, strOut);
     }
     else
     {
-        CFileUtil::Uncompress(strInFile, strOutFile);
+        CFileUtil::Uncompress(strInFile, strOut);
     }
     
 }

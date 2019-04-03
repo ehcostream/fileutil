@@ -1,17 +1,23 @@
 cmake_minimum_required(VERSION 3.5)
 
+SET(EXECUTABLE_OUTPUT_PATH ./bin)
+
 file(GLOB SRC_FILES *.cpp *.h)
 
 project(zlibutil)
 
 find_package(ZLIB REQUIRED)
 
-set(CMAKE_CXX_FLAGS "-std=c++14 -g -Wall -Werror -z defs -mcmodel=medium")
+find_package(Boost REQUIRED)
 
-add_executable(main ${SRC_FILES})
+set(CMAKE_CXX_FLAGS_DEBUG "-std=c++14 -g -O2 -Wall -Werror -z defs -mcmodel=medium")
 
-include_directories(./zlibwrapper ${ZLIB_INCLUDE_DIR})
+set(CMAKE_CXX_FLAGS_RELEASE "-std=c++14 -O2 -Wall -Werror -z defs -mcmodel=medium")
+
+add_executable(fz ${SRC_FILES})
+
+include_directories(./zlibwrapper ${ZLIB_INCLUDE_DIR} ${Boost_INCLUDE_DIR})
 
 add_subdirectory(zlibwrapper)
 
-target_link_libraries(main zlibwrapper ${ZLIB_LIBRARY})
+target_link_libraries(fz zlibwrapper ${ZLIB_LIBRARY} ${Boost_LIBRARY})

@@ -1,5 +1,5 @@
+bin/*
 CMakeFiles/*
-main
 cmake_install.cmake
 CMakeCache.txt
 Makefile
@@ -11,4 +11,3 @@ zlibwrapper/*.a
 zlibwrapper/*.o
 *.a
 *.o
-

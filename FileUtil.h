@@ -15,7 +15,9 @@
 #include <iostream>
 #include <unistd.h>
 #include <time.h>
+#include <vector>
 #include <zlib.h>
+#include <boost/algorithm/string.hpp>
 #include "zstr.cpp"
 
 class CFileUtil
@@ -28,9 +30,11 @@ public:
 
     static int Uncompress(const std::string& rstrIn, const std::string& rstrOut);
 
-    static int EncodeFile(const std::string& rstrSource, const std::string& rstrEncodeFile);
+    static int EncodeFile(const std::string& rstrSource, const std::string& rstrEncodeFileDir);
 
-    static int DecodeFile(const std::string& rstrEncodeFile, const std::string& rstrDecodeFile);
+    static int DecodeFile(const std::string& rstrEncodeFile, const std::string& rstrDecodeFileDir);
+
+    static bool GetFileName(const std::string& rstrFilePath, std::string& rstrFileName);
 
 private:
     static void CatStream(std::istream& ris, std::ostream& ros);
