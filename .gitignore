@@ -9,5 +9,11 @@ zlibwrapper/Makefile
 zlibwrapper/CMakeFiles/*
 zlibwrapper/*.a
 zlibwrapper/*.o
+zlibwrapper2/cmake_install.cmake
+zlibwrapper2/CMakeCache.txt
+zlibwrapper2/Makefile
+zlibwrapper2/CMakeFiles/*
+zlibwrapper2/*.a
+zlibwrapper2/*.o
 *.a
 *.o
