@@ -31,18 +31,18 @@ namespace fs = boost::filesystem;
 //进行归档的文件的头部信息
 enum FileType
 {
-    FT_UNKNOW = 0,
-    FT_FILE = 1,
-    FT_DIR = 2,
+    FT_UNKNOW = 0x00,
+    FT_FILE = 0x01,
+    FT_DIR = 0x02,
     FT_MAX
 };
 
 struct FileInfo
 {
     //文件类型
-    uint32_t dwFType;
-    //文件大小
-    uint32_t dwFSize;
+    char bFType;
+    //文件大小，满足文件大小大于4G的情况
+    uint64_t ullFSize;
     //文件路径
     char szFPath[255];
 };
@@ -71,8 +71,11 @@ private:
     //rstrOut为解档文件夹
     static int Dearchive(const std::string& rstrArchiveFile, const std::string& rstrOut, uint32_t dwBuffSize);
 
-    static int Write2File();
-    
+    //归档一个文件或文件夹
+    static int ArchiveOneFileOrDir(const std::string& rstrSource, std::ofstream& rofArchiveFile, uint32_t dwBuffSize);
+
+    //解档一个块文件
+    static int DearchiveOneFileOrDir(std::ifstream& rifSource, const std::string& rstrOut, uint32_t dwBuffSize);
 
 };
 

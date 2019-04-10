@@ -133,7 +133,6 @@ int CFileUtil::ReverseStream(const std::string& rstrSource, const std::string& r
     std::ifstream in(rstrSource, std::ifstream::in | std::ifstream::binary);
     std::ofstream out(rstrOut, std::ofstream::out | std::ofstream::trunc);
     int nError = 0;
-    int n = 0;
     do
     {
         if(!in.is_open())
@@ -148,23 +147,15 @@ int CFileUtil::ReverseStream(const std::string& rstrSource, const std::string& r
         }
         //open file normally
         char c;
-        in.seekg (0, in.end);
-        int length = in.tellg();
-        in.seekg (0, in.beg);
-        std::cout << "before length :" << length << std::endl;
-        while(n < length)
+        while(in.peek() != EOF)
         {
             in.get(c);
-            char tmp = ~c;
-            out << tmp;
-            n++;
+            out << (char)(~c);
         }
         in.close();
         out.close();
 
     }while(false);
-
-    std::cout << "after length :" << n << std::endl;
 
     if(nError == 0 )
     {
@@ -198,10 +189,11 @@ int CFileUtil::Archive(const std::vector<std::string>& rVecFile, const std::stri
     //可能是单个文件，多个文件，文件夹，文件+文件夹（多级目录）
     //将文件头部信息和文件内容，序列化到单个文件中
     int nError = 0;
-    std::vector<std::string> vecHierarchy;
-
     do
     {
+        std::ofstream oArcFile(rstrOut, std::ofstream::binary);
+        //生成将要归档的文件
+        std::cout << "out " << rstrOut << "open state " << oArcFile.is_open() << std::endl;
         for(auto& rFile : rVecFile)
         {
             std::cout << rFile << std::endl;
@@ -215,89 +207,21 @@ int CFileUtil::Archive(const std::vector<std::string>& rVecFile, const std::stri
             {
                 try
                 {
-                    //生成将要归档的文件
-                    std::ofstream oArcFile(rstrOut, std::ofstream::binary);
-                    std::cout << "out " << rstrOut << "open state " << oArcFile.is_open() << std::endl;
+                    
                     if(fs::is_directory(path))
                     {
                         for(fs::recursive_directory_iterator dir_end, dir(rFile); dir != dir_end; ++dir)
                         {
                             std::cout << "--" << dir->path() << std::endl;
-                            
-                            if(fs::is_regular_file(dir->path()))
-                            {
-                                //判断是文件
-
-                            }
-                            else if(fs::is_directory(dir->path()))
-                            {
-                                //判断是文件夹
-                                
-                            }
-                            else
-                            {
-                                //other files
-                            }
-                            
+                            ArchiveOneFileOrDir(dir->path().string(), oArcFile, dwBuffSize);                            
                         }
                     }
                     else if(fs::is_regular_file(path))
                     {
-                        std::string strFileRelativePath = path.string();
-                        std::ifstream iReadyFile(strFileRelativePath, std::ifstream::binary);
-
-                        //该缓冲区会被反复写入，但都是根据指定字节读取或者写入，因此不用每次memset(pszBuff.get(), 0, dwBuffSize);
-                        std::unique_ptr<char> pszBuff = std::unique_ptr<char>(new char[dwBuffSize]);
-                        
-                        iReadyFile.seekg(0, iReadyFile.end);
-                        uint32_t length = iReadyFile.tellg();
-                        iReadyFile.seekg(0, iReadyFile.beg);
-
-                        //文件头部信息
-                        FileInfo fileInfo;
-                        fileInfo.dwFType = FT_FILE;
-                        fileInfo.dwFSize = length;
-                        strncpy(fileInfo.szFPath, strFileRelativePath.c_str(), strFileRelativePath.length());
-                        //写入头部信息
-                        oArcFile.write((char*)&fileInfo,sizeof(FileInfo));
-
-                        char* szBuff = pszBuff.get();
-                        if(length > dwBuffSize)
-                        {
-                            //如果文件大小大于缓冲区大小
-                            std::cout << iReadyFile.peek() << EOF << std::endl;
-                            while(iReadyFile.peek() != EOF)
-                            {
-                                iReadyFile.read(szBuff, dwBuffSize);
-
-                                if(iReadyFile)
-                                {
-                                    //所有字符成功读取
-                                    oArcFile.write(szBuff, dwBuffSize);
-                                }
-                                else
-                                {
-                                    //实际读取字节数
-                                    uint32_t readByteCnt = iReadyFile.gcount();
-                                    oArcFile.write(szBuff, readByteCnt);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            //如果文件大小小于缓冲区大小
-                            std::cout << "file length < buffer size" << std::endl;
-                            iReadyFile.read(szBuff, dwBuffSize);
-                            uint32_t dwSize = iReadyFile.gcount();
-                            std::cout << "actual write bytes:" << dwSize << std::endl;
-                            oArcFile.write(szBuff, dwSize);
-                        }
-                        
-                        iReadyFile.close();
-                        
+                        std::cout << "is file: " << path.string() << std::endl;
+                        ArchiveOneFileOrDir(path.string(), oArcFile, dwBuffSize); 
                     }
-                    std::cout << "close output file" << std::endl;
-                    oArcFile.close();
+                    
                 }
                 catch(fs::filesystem_error e)
                 {
@@ -306,6 +230,7 @@ int CFileUtil::Archive(const std::vector<std::string>& rVecFile, const std::stri
                 
             }
         }
+        oArcFile.close();
     }while(false);
     
     return nError;
@@ -322,55 +247,22 @@ int CFileUtil::Dearchive(const std::string& rstrArchivedFile, const std::string&
         try
         {
             std::ifstream iArcFile(rstrArchivedFile, std::ifstream::in | std::ifstream::binary);
-
+            //输出路径如果存在，则直接以输出路径进行文件解档，如果不存在，则创建输出路径
+            fs::path outPath(rstrOut);
+            if(!fs::exists(outPath))
+            {
+                //不存在，创建此目录，并作为根目录
+                fs::create_directories(outPath);
+            }
             if(iArcFile.is_open())
             {
-                FileInfo stFileInfo;
-                iArcFile.read((char*)&stFileInfo, sizeof(stFileInfo));
-                //log file header
-                std::cout << stFileInfo.dwFSize << " ,"
-                << stFileInfo.dwFType << " ,"
-                << stFileInfo.szFPath << std::endl;
-
-                fs::path filePath = fs::path(rstrOut) / stFileInfo.szFPath;
-                std::string strResultPath = filePath.string();
-                std::cout << strResultPath << std::endl;
-
-                std::ofstream oFile(strResultPath, std::ofstream::out | std::ofstream::binary);
-                std::unique_ptr<char> pszBuff = std::unique_ptr<char>(new char[dwBuffSize]);
-                char* szBuff = pszBuff.get();
-                if(stFileInfo.dwFSize > dwBuffSize)
+                //读取文件头信息
+                while(iArcFile.peek() != EOF)
                 {
-                    uint32_t dwNeedReadLoop = ceil(stFileInfo.dwFSize * 1.0 / dwBuffSize);
-                    uint32_t dwCnt = dwNeedReadLoop;
-                    std::cout << "loop:" << dwNeedReadLoop << std::endl;
-                    while(dwCnt--)
-                    {
-                        std::cout << "current loop:" << dwCnt << std::endl;
-                        if(dwCnt != 1)
-                        {
-                            iArcFile.read(szBuff, dwBuffSize);
-                            oFile.write(szBuff, dwBuffSize);
-                        }
-                        else
-                        {
-                            uint32_t dwRestBytes = stFileInfo.dwFSize - (dwNeedReadLoop - 1) * dwBuffSize;
-                            std::cout << "rest:" << dwRestBytes << std::endl;
-                            iArcFile.read(szBuff, dwRestBytes);
-                            std::cout << "read finished" << std::endl;
-                            oFile.write(szBuff, dwRestBytes);
-                            std::cout << "write finished" << std::endl;
-                        }
-                    }
-                    
+                    //读取一个文件头+文件内容
+                    //逐文件进行解档
+                    DearchiveOneFileOrDir(iArcFile, rstrOut, dwBuffSize);
                 }
-                else
-                {
-                    iArcFile.read(szBuff, stFileInfo.dwFSize);
-                    oFile.write(szBuff, stFileInfo.dwFSize);
-                }
-                oFile.close();
-                
             }
             else
             {
@@ -389,4 +281,154 @@ int CFileUtil::Dearchive(const std::string& rstrArchivedFile, const std::string&
     }while(false);
 
     return nError;
+}
+
+
+int CFileUtil::ArchiveOneFileOrDir(const std::string& rstrSource, std::ofstream& rofArchiveFile, uint32_t dwBuffSize)
+{
+    assert(dwBuffSize != 0);
+    fs::path path(rstrSource);
+    if(fs::is_regular_file(path))
+    {
+        std::ifstream iReadyFile(rstrSource, std::ifstream::binary);
+
+        //该缓冲区会被反复写入，但都是根据指定字节读取或者写入，因此不用每次memset(pszBuff.get(), 0, dwBuffSize);
+        std::unique_ptr<char> pszBuff = std::unique_ptr<char>(new char[dwBuffSize]);
+        
+        iReadyFile.seekg(0, iReadyFile.end);
+        uint64_t length = iReadyFile.tellg();
+        iReadyFile.seekg(0, iReadyFile.beg);
+
+        //文件头部信息
+        FileInfo fileInfo;
+        fileInfo.bFType = FT_FILE;
+        fileInfo.ullFSize = length;
+        strncpy(fileInfo.szFPath, rstrSource.c_str(), rstrSource.length());
+        strncpy(&fileInfo.szFPath[0] + rstrSource.length(), "\0", 1); 
+        //写入头部信息
+        rofArchiveFile.write((char*)&fileInfo,sizeof(FileInfo));
+
+        char* szBuff = pszBuff.get();
+        if(length > dwBuffSize)
+        {
+            //如果文件大小大于缓冲区大小
+            std::cout << iReadyFile.peek() << EOF << std::endl;
+            while(iReadyFile.peek() != EOF)
+            {
+                iReadyFile.read(szBuff, dwBuffSize);
+
+                if(iReadyFile)
+                {
+                    //所有字符成功读取
+                    rofArchiveFile.write(szBuff, dwBuffSize);
+                }
+                else
+                {
+                    //实际读取字节数
+                    uint32_t readByteCnt = iReadyFile.gcount();
+                    rofArchiveFile.write(szBuff, readByteCnt);
+                }
+            }
+        }
+        else
+        {
+            //如果文件大小小于缓冲区大小
+            std::cout << "file length < buffer size" << std::endl;
+            iReadyFile.read(szBuff, dwBuffSize);
+            uint32_t dwSize = iReadyFile.gcount();
+            std::cout << "actual write bytes:" << dwSize << std::endl;
+            rofArchiveFile.write(szBuff, dwSize);
+        }
+        
+        iReadyFile.close();
+    }
+    else if(fs::is_directory(path))
+    {
+        FileInfo fileInfo;
+        fileInfo.bFType = FT_DIR;
+        fileInfo.ullFSize = 0;
+        strncpy(fileInfo.szFPath, rstrSource.c_str(), rstrSource.length());
+        strncpy(&fileInfo.szFPath[0] + rstrSource.length(), "\0", 1); 
+        //写入头部信息
+        rofArchiveFile.write((char*)&fileInfo,sizeof(FileInfo));
+    }
+    else
+    {
+        //do not handle
+    }
+    return 0;
+}
+
+int CFileUtil::DearchiveOneFileOrDir(std::ifstream& rifSource, const std::string& rstrOut, uint32_t dwBuffSize)
+{
+    FileInfo stFileInfo;
+    rifSource.read((char*)&stFileInfo, sizeof(FileInfo));
+    //log file header
+    std::cout << stFileInfo.ullFSize << ", "
+    << (int)stFileInfo.bFType << ", "
+    << stFileInfo.szFPath << std::endl;
+
+    char bType = stFileInfo.bFType;
+    try
+    {
+        if(bType == FT_DIR)
+        {
+            fs::path dirPath = fs::path(rstrOut) / stFileInfo.szFPath;
+            fs::create_directories(dirPath);
+            
+        }
+        else if(bType == FT_FILE)
+        {
+            fs::path filePath = fs::path(rstrOut) / stFileInfo.szFPath;
+            std::string strResultPath = filePath.string();
+            std::cout << strResultPath << std::endl;
+
+            std::ofstream oFile(strResultPath, std::ofstream::out | std::ofstream::binary);
+            std::unique_ptr<char> pszBuff = std::unique_ptr<char>(new char[dwBuffSize]);
+            char* szBuff = pszBuff.get();
+            if(stFileInfo.ullFSize > dwBuffSize)
+            {
+                uint32_t dwNeedReadLoop = ceil(stFileInfo.ullFSize * 1.0 / dwBuffSize);
+                uint32_t dwCnt = dwNeedReadLoop;
+                std::cout << "loop:" << dwNeedReadLoop << std::endl;
+                while(dwCnt--)
+                {
+                    std::cout << "current loop:" << dwCnt << std::endl;
+                    if(dwCnt != 1)
+                    {
+                        rifSource.read(szBuff, dwBuffSize);
+                        oFile.write(szBuff, dwBuffSize);
+                    }
+                    else
+                    {
+                        uint32_t dwRestBytes = stFileInfo.ullFSize - (dwNeedReadLoop - 1) * dwBuffSize;
+                        std::cout << "rest:" << dwRestBytes << std::endl;
+                        rifSource.read(szBuff, dwRestBytes);
+                        std::cout << "read finished" << std::endl;
+                        oFile.write(szBuff, dwRestBytes);
+                        std::cout << "write finished" << std::endl;
+                    }
+                }
+                
+            }
+            else
+            {
+                rifSource.read(szBuff, stFileInfo.ullFSize);
+                oFile.write(szBuff, stFileInfo.ullFSize);
+                std::cout << "file size < dwBuffSize" << std::endl; 
+            }
+            oFile.close();
+        }
+        else
+        {
+            //DO NOT HANDLE
+        }
+    }
+    catch(fs::filesystem_error e)
+    {
+        std::cout << e.what() << std::endl;
+    }
+
+    return 0;
+    
 }

@@ -12,7 +12,8 @@ int main(int argc, char** argv)
 
     bool bCompress = false;
     int nEncode = -1;
-    std::string strOut;
+    //默认根目录为当前目录
+    std::string strOut = ".";
     std::string strInFile;
     int c;
     //默认CPU核数为1
@@ -25,7 +26,7 @@ int main(int argc, char** argv)
         {
         case 'c':
             bCompress = true;
-            strInFile = argv[optind];
+            //strInFile = argv[optind];
             break;
         case 's':
             strInFile = argv[optind];
@@ -61,6 +62,7 @@ int main(int argc, char** argv)
         }
     }
 
+
     if(nEncode > -1)
     {
         if(nEncode)
@@ -74,12 +76,16 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    std::cout << "input_file:" << strInFile<< ",output_file:" << strOut << std::endl;
-
     if (bCompress)
     {
-        std::vector<std::string> vecFiles;
-        vecFiles.emplace_back(strInFile);
+        std::vector<std::string> vecFiles(&argv[optind+1], &argv[argc]);
+        std::cout << "infiles:" << std::endl;
+        for(const auto& it : vecFiles)
+        {
+            std::cout << it << std::endl;
+        }
+        std::cout << "out file:" << strOut << std::endl;
+        
         CFileUtil::Compress(vecFiles, strOut, 1 << 20);
     }
     else
