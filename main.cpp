@@ -1,5 +1,5 @@
 #include "FileUtil.h"
-
+#include <boost/lexical_cast.hpp>
 int main(int argc, char** argv)
 {
     auto usage = [](std::ostream& os, const std::string& prog_name)
@@ -15,7 +15,11 @@ int main(int argc, char** argv)
     std::string strOut;
     std::string strInFile;
     int c;
-    while ((c = getopt(argc, argv, "csou:hde?")) != -1)
+    //默认CPU核数为1
+    int dwCpuCore = 1;
+    //默认使用1M
+    uint32_t dwMaxBuff = 1 << 20; 
+    while ((c = getopt(argc, argv, "csouCB:hde?")) != -1)
     {
         switch (c)
         {
@@ -30,7 +34,15 @@ int main(int argc, char** argv)
             strOut = argv[optind];
             break;
         case 'u':
-            strInFile = optarg;
+            strInFile = argv[optind];
+            break;
+        case 'C':
+            dwCpuCore = boost::lexical_cast<uint32_t>(argv[optind]);
+            std::cout << dwCpuCore << std::endl;
+            break;
+        case 'B':
+            dwMaxBuff = boost::lexical_cast<uint32_t>(argv[optind]);
+            std::cout << dwMaxBuff << std::endl;
             break;
         case '?':
         case 'h':
@@ -66,11 +78,13 @@ int main(int argc, char** argv)
 
     if (bCompress)
     {
-        CFileUtil::Compress(strInFile, strOut);
+        std::vector<std::string> vecFiles;
+        vecFiles.emplace_back(strInFile);
+        CFileUtil::Compress(vecFiles, strOut, 1 << 20);
     }
     else
     {
-        CFileUtil::Uncompress(strInFile, strOut);
+        CFileUtil::Uncompress(strInFile, strOut, 1 << 20);
     }
     
 }

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libzlibwrapper2.a  CMakeFiles/zlibwrapper2.dir/strict_fstream.cpp.o CMakeFiles/zlibwrapper2.dir/zio.cpp.o
+/usr/bin/ranlib libzlibwrapper2.a
