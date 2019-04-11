@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.5)
 
 SET(EXECUTABLE_OUTPUT_PATH ./bin)
 
-file(MAKE_DIRECTORY ./bin/tmp)
-
 file(GLOB SRC_FILES *.cpp *.h)
 
 project(zlibutil)

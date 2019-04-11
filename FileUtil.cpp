@@ -7,76 +7,62 @@
  */
 #include "FileUtil.h"
 
+void CFileUtil::GetTmpMiddleFile(std::string& rstrAchiveFile, bool bAchive)
+{
+    //当前微秒时间戳
+    auto now = std::chrono::system_clock::now().time_since_epoch();
+    int64_t ullNow = std::chrono::duration_cast<std::chrono::microseconds>(now).count();
+    fs::path arFilePath = fs::temp_directory_path();
+    std::ostringstream oss;
+    oss << "zlibun" << (bAchive ? "" : "un") << "compress_tmp_" << ullNow << ".archive";
+    arFilePath = arFilePath / oss.str();
+    rstrAchiveFile = arFilePath.string();
+}
+
 int CFileUtil::Compress(const std::vector<std::string>& rVecFile, const std::string& rstrOut, uint32_t dwBuffSize, uint32_t dwCpuCore)
 {
-    Archive(rVecFile, rstrOut, dwBuffSize);
-    // uint32_t dwNow = time(nullptr);
-    // //文件归档
-    // std::ostringstream ossTarTmp;
-    // ossTarTmp << "/tmp/zlibcompress_tmp_" << dwNow << ".tar";
-    // std::string strTarFile = ossTarTmp.str();
-    // std::ostringstream ossTarCmd;
-    // ossTarCmd << "tar" << " -cvf " << ossTarTmp.str() << " " << rstrIn;
-    // std::cout << ossTarCmd.str() << std::endl;
-    // FILE* fp = popen(ossTarCmd.str().c_str(), "w");
-    // pclose(fp);
+    //归档
+    std::string strMidFile;
+    GetTmpMiddleFile(strMidFile, true);
+    assert(!strMidFile.empty());
+    Archive(rVecFile, strMidFile, dwBuffSize);
 
-    // //调用zlib进行压缩
-    // std::unique_ptr< std::ostream > osp =
-    //     (not rstrOut.empty()
-    //      ? std::unique_ptr< std::ostream >(new zio::ofstream(rstrOut, dwBuffSize))
-    //      : std::unique_ptr< std::ostream >(new zio::ostream(std::cout)));
+    //调用zlib进行压缩
+    std::unique_ptr< std::ostream > osp =
+        (not rstrOut.empty()
+         ? std::unique_ptr< std::ostream >(new zio::ofstream(rstrOut, dwBuffSize))
+         : std::unique_ptr< std::ostream >(new zio::ostream(std::cout)));
 
-    // std::unique_ptr< std::ifstream > ifsp;
-    // std::istream * isp = &std::cin;
+    std::unique_ptr< std::ifstream > ifsp;
+    std::istream * isp = &std::cin;
 
-    // ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(strTarFile));
-    // isp = ifsp.get();
+    ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(strMidFile));
+    isp = ifsp.get();
+    CatStream(*isp, *osp, dwBuffSize);
 
-    // CatStream(*isp, *osp, dwBuffSize);
-
-    // //删除中间文件
-    // std::ostringstream ossdel;
-    // ossdel << "rm -rf " << strTarFile;
-    // FILE* fpd = popen(ossdel.str().c_str(), "w");
-    // pclose(fpd);
-
+    //删除临时文件
+    fs::remove(fs::path(strMidFile));
     return 0;
 }
 
 int CFileUtil::Uncompress(const std::string& rstrIn, const std::string& rstrOut, uint32_t dwBuffSize, uint32_t dwCpuCore)
 {
-    std::cout << dwBuffSize << std::endl;
-    Dearchive(rstrIn, rstrOut, dwBuffSize);
-    /*uint32_t dwNow = time(nullptr);
+    std::string strMidFile;
+    GetTmpMiddleFile(strMidFile, false);
+    assert(!strMidFile.empty());
     //文件进行解压缩
-    std::ostringstream ossTarTmp;
-    ossTarTmp << "/tmp/zlibuncompress_tmp_" << dwNow << ".tar";
-    std::string strUntarFile = ossTarTmp.str();
     std::unique_ptr< std::ofstream > ofsp;
     std::ostream * osp = &std::cout;
-    if (not strUntarFile.empty())
-    {
-        ofsp = std::unique_ptr< std::ofstream >(new strict_fstream::ofstream(strUntarFile));
-        osp = ofsp.get();
-    }
-
-    std::unique_ptr< std::istream > isp = std::unique_ptr< std::istream >(new zio::ifstream(rstrIn, 1<<20));
+    ofsp = std::unique_ptr< std::ofstream >(new strict_fstream::ofstream(strMidFile));
+    osp = ofsp.get();
+    std::unique_ptr< std::istream > isp = std::unique_ptr< std::istream >(new zio::ifstream(rstrIn, dwBuffSize));
     CatStream(*isp, *osp, dwBuffSize);
 
-    //对归档文件释放到指定目录
-    std::ostringstream ossUnTar;
-    ossUnTar << "tar" << " -xvf " << strUntarFile << " -C " << rstrOut;
-    FILE* fpuntar = popen(ossUnTar.str().c_str(), "w");
-    pclose(fpuntar);
+    //解档
+    Dearchive(strMidFile, rstrOut, dwBuffSize);
 
-    //删除中间文件
-    std::ostringstream ossdel;
-    ossdel << "rm -rf " << strUntarFile;
-    std::cout << ossdel.str() << std::endl;
-    FILE* fpd = popen(ossdel.str().c_str(), "w");
-    pclose(fpd);*/
-
+    //删除临时文件
+    fs::remove(fs::path(strMidFile));
     return 0;
 }
 
@@ -292,7 +278,7 @@ int CFileUtil::ArchiveOneFileOrDir(const std::string& rstrSource, std::ofstream&
     {
         std::ifstream iReadyFile(rstrSource, std::ifstream::binary);
 
-        //该缓冲区会被反复写入，但都是根据指定字节读取或者写入，因此不用每次memset(pszBuff.get(), 0, dwBuffSize);
+        //该缓冲区会被反复写入，但都是根据指定字节长度读取或者写入，因此不用每次memset(pszBuff.get(), 0, dwBuffSize);
         std::unique_ptr<char> pszBuff = std::unique_ptr<char>(new char[dwBuffSize]);
         
         iReadyFile.seekg(0, iReadyFile.end);
@@ -354,7 +340,7 @@ int CFileUtil::ArchiveOneFileOrDir(const std::string& rstrSource, std::ofstream&
     }
     else
     {
-        //do not handle
+        //DO NOT HANDLE
     }
     return 0;
 }
@@ -363,10 +349,7 @@ int CFileUtil::DearchiveOneFileOrDir(std::ifstream& rifSource, const std::string
 {
     FileInfo stFileInfo;
     rifSource.read((char*)&stFileInfo, sizeof(FileInfo));
-    //log file header
-    std::cout << stFileInfo.ullFSize << ", "
-    << (int)stFileInfo.bFType << ", "
-    << stFileInfo.szFPath << std::endl;
+
 
     char bType = stFileInfo.bFType;
     try
@@ -375,15 +358,19 @@ int CFileUtil::DearchiveOneFileOrDir(std::ifstream& rifSource, const std::string
         {
             fs::path dirPath = fs::path(rstrOut) / stFileInfo.szFPath;
             fs::create_directories(dirPath);
-            
         }
         else if(bType == FT_FILE)
         {
             fs::path filePath = fs::path(rstrOut) / stFileInfo.szFPath;
+            if(!fs::exists(filePath.parent_path()))
+            {
+                fs::create_directories(filePath.parent_path());
+            }
             std::string strResultPath = filePath.string();
             std::cout << strResultPath << std::endl;
 
             std::ofstream oFile(strResultPath, std::ofstream::out | std::ofstream::binary);
+            std::cout << strResultPath << ", File state deachive " << oFile.is_open() << std::endl;
             std::unique_ptr<char> pszBuff = std::unique_ptr<char>(new char[dwBuffSize]);
             char* szBuff = pszBuff.get();
             if(stFileInfo.ullFSize > dwBuffSize)
@@ -415,7 +402,6 @@ int CFileUtil::DearchiveOneFileOrDir(std::ifstream& rifSource, const std::string
             {
                 rifSource.read(szBuff, stFileInfo.ullFSize);
                 oFile.write(szBuff, stFileInfo.ullFSize);
-                std::cout << "file size < dwBuffSize" << std::endl; 
             }
             oFile.close();
         }

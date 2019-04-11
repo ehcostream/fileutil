@@ -22,6 +22,7 @@
 #include <zlib.h>
 #include <cmath>
 #include <assert.h>
+#include <chrono>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include "zio.cpp"
@@ -71,11 +72,14 @@ private:
     //rstrOut为解档文件夹
     static int Dearchive(const std::string& rstrArchiveFile, const std::string& rstrOut, uint32_t dwBuffSize);
 
-    //归档一个文件或文件夹
+    //归档一个块文件
     static int ArchiveOneFileOrDir(const std::string& rstrSource, std::ofstream& rofArchiveFile, uint32_t dwBuffSize);
 
     //解档一个块文件
     static int DearchiveOneFileOrDir(std::ifstream& rifSource, const std::string& rstrOut, uint32_t dwBuffSize);
+
+    //获取一个临时(解)归档文件名
+    static void GetTmpMiddleFile(std::string& rstrAchiveFile, bool bAchive);
 
 };
 
