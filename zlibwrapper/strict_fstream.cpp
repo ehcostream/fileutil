@@ -1,3 +1,15 @@
+/*
+ * zio.cpp
+ *
+ *  Created on: 2019年4月9日
+ *      Author: Edric
+ *      Brief:  文件流打开检查
+ *              - 确保打开模式有意义
+ *              - 确保open调用成功
+ *              - 对于输入流，检查已经打开的文件是否可读
+ *              - 开启坏字节异常抛出
+ */
+
 #ifndef __STRICT_FSTREAM_HPP
 #define __STRICT_FSTREAM_HPP
 
@@ -6,18 +18,9 @@
 #include <cstring>
 #include <string>
 
-/**
- * This namespace defines wrappers for std::ifstream, std::ofstream, and
- * std::fstream objects. The wrappers perform the following steps:
- * - check the open modes make sense
- * - check that the call to open() is successful
- * - (for input streams) check that the opened file is peek-able
- * - turn on the badbit in the exception mask
- */
 namespace strict_fstream
 {
 
-/// Overload of error-reporting function, to enable use with VS.
 /// Ref: http://stackoverflow.com/a/901316/717706
 static std::string strerror()
 {

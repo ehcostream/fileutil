@@ -16,8 +16,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "-std=c++11 -O2 -Wall -Werror -z defs -mcmodel=mediu
 
 add_executable(fz ${SRC_FILES})
 
-include_directories(./zlibwrapper2 ${ZLIB_INCLUDE_DIR} ${Boost_INCLUDE_DIRS})
+include_directories(./zlibwrapper ${ZLIB_INCLUDE_DIR} ${Boost_INCLUDE_DIRS})
 
-add_subdirectory(zlibwrapper2)
+add_subdirectory(zlibwrapper)
 
-target_link_libraries(fz zlibwrapper2 ${ZLIB_LIBRARY} ${Boost_LIBRARIES})
+target_link_libraries(fz zlibwrapper ${ZLIB_LIBRARY} ${Boost_LIBRARIES})

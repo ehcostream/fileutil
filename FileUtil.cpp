@@ -46,11 +46,26 @@ int CFileUtil::Compress(const std::vector<std::string>& rVecFile, const std::str
     }
     else
     {
-        strTargetFile = fs::path(file).stem().string();
+        fs::path path(file);
+        if(fs::is_regular_file(path))
+        {
+            strTargetFile = path.stem().string();
+        }
+        if(fs::is_directory(path))
+        {
+            if(std::string(&file.back()) == std::string("/") || std::string(&file.back()) == std::string("\\"))
+            {
+                file.pop_back();
+            }
+            path = fs::path(file);
+            strTargetFile = path.filename().string();
+        }
+        
+        std::cout << strTargetFile << std::endl;
     }
     strTargetFile.append(strExtension);
     outFilePath /= strTargetFile;
-
+    std::cout << "compress out file :" << outFilePath << std::endl;
     //调用zlib进行压缩
     std::unique_ptr< std::ostream > osp =
         (not rstrOut.empty()
