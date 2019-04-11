@@ -48,6 +48,15 @@ struct FileInfo
     char szFPath[255];
 };
 
+//加密文件头信息
+struct EncodeHeaderInfo
+{
+    //加密文件类型
+    char szExt[10];
+    //文件原名称
+    char szFilename[255];
+};
+
 class CFileUtil
 {
 public:
@@ -58,18 +67,17 @@ public:
     static int EncodeFile(const std::string& rstrSource, const std::string& rstrEncodeFileDir);
 
     static int DecodeFile(const std::string& rstrEncodeFile, const std::string& rstrDecodeFileDir);
-
-    static bool GetFileName(const std::string& rstrFilePath, std::string& rstrFileName);
-
 private:
+    //将文件流输出到加密/解密流中
     static bool CatStream(std::istream& ris, std::ostream& ros, uint32_t dwBuffSize);
 
-    static int ReverseStream(const std::string& rstrSource, const std::string& rstrOut);
+    //加(解)密文件
+    static int EncodeFile2(const std::string& rstrSource, const std::string& rstrOut, bool bEncode);
 
-    //rstrOut为具体文件名，包含路径
+    //rstrOut为文件夹
     static int Archive(const std::vector<std::string>& rVecFile, const std::string& rstrOut, uint32_t dwBuffSize);
 
-    //rstrOut为解档文件夹
+    //rstrOut为文件夹
     static int Dearchive(const std::string& rstrArchiveFile, const std::string& rstrOut, uint32_t dwBuffSize);
 
     //归档一个块文件

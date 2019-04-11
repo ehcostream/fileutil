@@ -14,23 +14,47 @@ void CFileUtil::GetTmpMiddleFile(std::string& rstrAchiveFile, bool bAchive)
     int64_t ullNow = std::chrono::duration_cast<std::chrono::microseconds>(now).count();
     fs::path arFilePath = fs::temp_directory_path();
     std::ostringstream oss;
-    oss << "zlibun" << (bAchive ? "" : "un") << "compress_tmp_" << ullNow << ".archive";
+    oss << "zlib" << (bAchive ? "" : "un") << "compress_tmp_" << ullNow << ".ar";
     arFilePath = arFilePath / oss.str();
     rstrAchiveFile = arFilePath.string();
 }
 
 int CFileUtil::Compress(const std::vector<std::string>& rVecFile, const std::string& rstrOut, uint32_t dwBuffSize, uint32_t dwCpuCore)
 {
+    assert(rVecFile.size() > 0);
     //归档
     std::string strMidFile;
     GetTmpMiddleFile(strMidFile, true);
     assert(!strMidFile.empty());
     Archive(rVecFile, strMidFile, dwBuffSize);
 
+    fs::path outDir(rstrOut);
+    if(!fs::exists(outDir))
+    {
+        fs::create_directories(outDir);
+    }
+
+    fs::path outFilePath(outDir);
+    std::string strExtension = ".ar.zb";
+    std::string strTargetFile;
+
+    auto file = rVecFile.front();
+    if(rVecFile.size() > 1)
+    {
+        //如果有多个文件/夹，以第一个文件的父目录名称为文件名建立压缩文件
+        strTargetFile = fs::path(fs::absolute(file)).parent_path().filename().string();
+    }
+    else
+    {
+        strTargetFile = fs::path(file).stem().string();
+    }
+    strTargetFile.append(strExtension);
+    outFilePath /= strTargetFile;
+
     //调用zlib进行压缩
     std::unique_ptr< std::ostream > osp =
         (not rstrOut.empty()
-         ? std::unique_ptr< std::ostream >(new zio::ofstream(rstrOut, dwBuffSize))
+         ? std::unique_ptr< std::ostream >(new zio::ofstream(outFilePath.string(), dwBuffSize))
          : std::unique_ptr< std::ostream >(new zio::ostream(std::cout)));
 
     std::unique_ptr< std::ifstream > ifsp;
@@ -68,24 +92,14 @@ int CFileUtil::Uncompress(const std::string& rstrIn, const std::string& rstrOut,
 
 int CFileUtil::EncodeFile(const std::string& rstrSource, const std::string& rstrEncodeFileDir)
 {
-    //加密后文件名称：源文件文件名+.spec后缀
-    std::string strFileName;
-    GetFileName(rstrSource, strFileName);
-    std::ostringstream oss;
-    oss << rstrEncodeFileDir << "/" << strFileName << ".spec";
-    ReverseStream(rstrSource, oss.str());
-    return 0;
+    //加密后文件名称：源文件文件名+.spc
+    std::cout << "encodefile:" << rstrSource << std::endl;
+    return EncodeFile2(rstrSource, rstrEncodeFileDir, true);
 }
 
 int CFileUtil::DecodeFile(const std::string& rstrEncodeFile, const std::string& rstrDecodeFileDir)
 {
-    //默认解密为.tar.gz结尾的文件
-    std::string strFileName;
-    GetFileName(rstrEncodeFile, strFileName);
-    std::ostringstream oss;
-    oss << rstrDecodeFileDir << "/" << strFileName << ".tar.gz";
-    ReverseStream(rstrEncodeFile, oss.str());
-    return 0;
+    return EncodeFile2(rstrEncodeFile, rstrDecodeFileDir, false);
 }
 
 bool CFileUtil::CatStream(std::istream& ris, std::ostream& ros, uint32_t dwBuffSize)
@@ -103,7 +117,7 @@ bool CFileUtil::CatStream(std::istream& ris, std::ostream& ros, uint32_t dwBuffS
             }
             ros.write(szBuff, cnt);
         }
-        delete [] szBuff;
+        delete[] szBuff;
         return true;
     }
     else
@@ -113,11 +127,18 @@ bool CFileUtil::CatStream(std::istream& ris, std::ostream& ros, uint32_t dwBuffS
     
 }
 
-int CFileUtil::ReverseStream(const std::string& rstrSource, const std::string& rstrOut)
+int CFileUtil::EncodeFile2(const std::string& rstrSource, const std::string& rstrOut, bool bEncode)
 {
-    std::cout << "source:" << rstrSource << "out:" << rstrOut << std::endl;
+    //判断输出文件夹是否存在如果不存在，则创建
+    fs::path filePath(rstrOut);
+    if(!fs::exists(filePath))
+    {
+        fs::create_directories(filePath);
+    }
+    
     std::ifstream in(rstrSource, std::ifstream::in | std::ifstream::binary);
-    std::ofstream out(rstrOut, std::ofstream::out | std::ofstream::trunc);
+    std::ofstream out;
+    std::string strExt(".spc");
     int nError = 0;
     do
     {
@@ -126,11 +147,58 @@ int CFileUtil::ReverseStream(const std::string& rstrSource, const std::string& r
             nError = 1;
             break;
         }
+        
+        std::string strOutFile;
+        EncodeHeaderInfo ehInfo;
+        //首先读取加密文件头信息
+        in.read((char*)&ehInfo, sizeof(ehInfo));
+
+        if(bEncode)
+        {
+            //
+            
+            if(std::string(ehInfo.szExt) == strExt)
+            {
+                //已经加密过
+                nError = 3;
+                break;
+            }
+            else
+            {
+                //恢复文件指针到文件头部
+                strOutFile = fs::path(rstrSource).filename().string();
+                strOutFile.append(strExt);
+                strOutFile = (filePath / strOutFile).string();
+                in.seekg(0, in.beg);
+            }
+        }
+        else
+        {
+            
+            if(std::string(ehInfo.szExt) != strExt)
+            {
+                nError = 4;
+                break;
+            }
+            strOutFile = (filePath / ehInfo.szFilename).string();
+        }
+        std::cout << "source:" << rstrSource << "out:" << strOutFile << std::endl;
+        out.open(strOutFile, std::ofstream::out | std::ofstream::trunc);
         if(!out.is_open())
         {
             nError = 2;
             break;
         }
+
+        if(bEncode)
+        {
+            strncpy(&ehInfo.szFilename[0], fs::path(rstrSource).filename().string().c_str(), rstrSource.length());
+            strncpy(&ehInfo.szFilename[0] + fs::path(rstrSource).filename().string().length(), "\0", 1);
+            strncpy(&ehInfo.szExt[0], strExt.c_str(), strExt.length());
+            strncpy(&ehInfo.szExt[0] + strExt.length(), "\0", 1);
+            out.write((char*)&ehInfo, (size_t)sizeof(EncodeHeaderInfo));
+        }
+        
         //open file normally
         char c;
         while(in.peek() != EOF)
@@ -138,35 +206,20 @@ int CFileUtil::ReverseStream(const std::string& rstrSource, const std::string& r
             in.get(c);
             out << (char)(~c);
         }
-        in.close();
-        out.close();
 
     }while(false);
 
     if(nError == 0 )
     {
-        std::cout << "encode file successfully" << std::endl;
+        std::cout << (bEncode ? "encode" : "decode") << " file successfully" << std::endl;
     }
     else
     {
-        std::cout << "encode file failed." << std::endl;
+        std::cout << (bEncode ? "encode" : "decode") << " file fail, error code: "  << nError << std::endl;
     }
+    in.close();
+    out.close();
     return nError;
-}
-
-bool CFileUtil::GetFileName(const std::string& rstrFilePath, std::string& rstrFileName)
-{
-    std::vector<std::string> stFilePathPieces;
-    boost::split(stFilePathPieces, rstrFilePath, boost::is_any_of("."));
-    if(stFilePathPieces.size() > 0 && !stFilePathPieces[0].empty())
-    {
-        rstrFileName = stFilePathPieces[0];
-        return true;
-    }
-    else
-    {
-        return false;
-    }
 }
 
 int CFileUtil::Archive(const std::vector<std::string>& rVecFile, const std::string& rstrOut, uint32_t dwBuffSize)

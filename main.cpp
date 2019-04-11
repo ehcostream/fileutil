@@ -62,7 +62,6 @@ int main(int argc, char** argv)
         }
     }
 
-
     if(nEncode > -1)
     {
         if(nEncode)
@@ -75,7 +74,7 @@ int main(int argc, char** argv)
         }
         return 0;
     }
-
+    
     if (bCompress)
     {
         std::vector<std::string> vecFiles(&argv[optind+1], &argv[argc]);
@@ -92,5 +91,4 @@ int main(int argc, char** argv)
     {
         CFileUtil::Uncompress(strInFile, strOut, 1 << 20);
     }
-    
 }
