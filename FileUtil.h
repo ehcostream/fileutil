@@ -15,7 +15,6 @@
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
-#include <unistd.h>
 #include <string.h>
 #include <time.h>
 #include <vector>
@@ -23,8 +22,11 @@
 #include <cmath>
 #include <assert.h>
 #include <chrono>
+#include <boost/thread/thread.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/asio/io_service.hpp>
+#include <boost/bind.hpp>
 #include "zio.cpp"
 
 namespace fs = boost::filesystem;
@@ -57,17 +59,31 @@ struct EncodeHeaderInfo
     char szFilename[255];
 };
 
+//线程参数
+struct ThreadParam
+{
+    uint32_t dwBuffSize;
+    std::string strSource;
+    std::string strOutFile;
+};
+
 class CFileUtil
 {
 public:
     static int Compress(const std::vector<std::string>& rVecFile, const std::string& rstrOut, uint32_t dwBuffSize, uint32_t dwCpuCore = 1);
+
+    static int CompressWithMT(const std::string rstrAchiveFile, uint32_t dwBuffSize, uint32_t dwCpuCore, const std::string& rstrOut);
 
     static int Uncompress(const std::string& rstrIn, const std::string& rstrOut, uint32_t dwBuffSize,  uint32_t dwCpuCore = 1);
 
     static int EncodeFile(const std::string& rstrSource, const std::string& rstrEncodeFileDir);
 
     static int DecodeFile(const std::string& rstrEncodeFile, const std::string& rstrDecodeFileDir);
+
 private:
+    //单个线程压缩流
+    static void CompressAFile(void* pParam);
+
     //将文件流输出到加密/解密流中
     static bool CatStream(std::istream& ris, std::ostream& ros, uint32_t dwBuffSize);
 
@@ -87,8 +103,13 @@ private:
     static int DearchiveOneFileOrDir(std::ifstream& rifSource, const std::string& rstrOut, uint32_t dwBuffSize);
 
     //获取一个临时(解)归档文件名
-    static void GetTmpMiddleFile(std::string& rstrAchiveFile, bool bAchive);
+    static void GetTmpMiddleFile(std::string& rstrAchiveFile, bool bAchive, int nMT = 0);
 
+    //一个文件均分为多个子文件
+    static int CutFileIntoPieces(const std::string& rstrIn, std::vector<std::string>& rVecOutFiles, uint32_t dwBlcok);
+
+    //合并多个文件为一个文件
+    static void CombainFiles(const std::vector<std::string>& rVecInFiles, const std::string& rstrOutFile, uint32_t dwBuffSize);
 };
 
 #endif

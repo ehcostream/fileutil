@@ -7,14 +7,29 @@
  */
 #include "FileUtil.h"
 
-void CFileUtil::GetTmpMiddleFile(std::string& rstrAchiveFile, bool bAchive)
+void CFileUtil::GetTmpMiddleFile(std::string& rstrAchiveFile, bool bAchive, int nMT)
 {
     //当前微秒时间戳
     auto now = std::chrono::system_clock::now().time_since_epoch();
     int64_t ullNow = std::chrono::duration_cast<std::chrono::microseconds>(now).count();
     fs::path arFilePath = fs::temp_directory_path();
     std::ostringstream oss;
-    oss << "zlib" << (bAchive ? "" : "un") << "compress_tmp_" << ullNow << ".ar";
+    if(nMT > 0)
+    {
+        if (nMT == 1)
+        {
+            oss << "zlib_mt_split_" << ullNow << ".ar";
+        }
+        if(nMT == 2)
+        {
+            oss << "zlib_mt_result_" << ullNow << ".ar";
+        }
+    }
+    else
+    {
+        oss << "zlib" << (bAchive ? "" : "un") << "compress_tmp_" << ullNow << ".ar";
+    }
+    
     arFilePath = arFilePath / oss.str();
     rstrAchiveFile = arFilePath.string();
 }
@@ -66,22 +81,167 @@ int CFileUtil::Compress(const std::vector<std::string>& rVecFile, const std::str
     strTargetFile.append(strExtension);
     outFilePath /= strTargetFile;
     std::cout << "compress out file :" << outFilePath << std::endl;
-    //调用zlib进行压缩
-    std::unique_ptr< std::ostream > osp =
-        (not rstrOut.empty()
-         ? std::unique_ptr< std::ostream >(new zio::ofstream(outFilePath.string(), dwBuffSize))
-         : std::unique_ptr< std::ostream >(new zio::ostream(std::cout)));
 
-    std::unique_ptr< std::ifstream > ifsp;
-    std::istream * isp = &std::cin;
+    if(dwCpuCore > 1)
+    {
+        //多线程压缩
+        CompressWithMT(strMidFile, dwBuffSize, dwCpuCore, outFilePath.string());
+    }
+    else
+    {
+        //调用zlib进行压缩
+        std::unique_ptr< std::ostream > osp =
+            (not rstrOut.empty()
+             ? std::unique_ptr< std::ostream >(new zio::ofstream(outFilePath.string(), dwBuffSize))
+             : std::unique_ptr< std::ostream >(new zio::ostream(std::cout)));
 
-    ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(strMidFile));
-    isp = ifsp.get();
-    CatStream(*isp, *osp, dwBuffSize);
+        std::unique_ptr< std::ifstream > ifsp;
+        std::istream * isp = &std::cin;
 
-    //删除临时文件
-    fs::remove(fs::path(strMidFile));
+        ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(strMidFile));
+        isp = ifsp.get();
+        CatStream(*isp, *osp, dwBuffSize);
+
+        //删除临时文件
+        fs::remove(fs::path(strMidFile));
+    }
+
+    
     return 0;
+}
+
+int CFileUtil::CompressWithMT(const std::string rstrAchiveFile, uint32_t dwBuffSize, uint32_t dwCpuCore, const std::string& rstrOut)
+{
+    //切割为多个多文件
+    //开启线程池，加入多个线程，根据buffsize平均分配，同时压缩文件
+    //等待所有线程完成，将结果写入目标文件中
+    assert(dwBuffSize > 0 && dwCpuCore > 1);
+
+    uint32_t dwThreadCnt = dwCpuCore;
+    std::vector<std::string> vecFiles;
+    CutFileIntoPieces(rstrAchiveFile, vecFiles, dwThreadCnt);
+    if(vecFiles.size() != dwThreadCnt)
+    {
+        std::cout << "vecfiles size:" << vecFiles.size() << std::endl;;
+        return 1;
+    }
+
+    std::vector<ThreadParam> vecThreadList;
+    uint32_t dwGeneralAvg = floor(dwBuffSize / dwThreadCnt);
+    boost::thread_group threadPool;
+    //初始化线程池
+    for(uint32_t i = 0; i< dwThreadCnt; i++)
+    {
+        ThreadParam stThreadParam;
+        if(i == dwThreadCnt -1)
+        {
+            stThreadParam.dwBuffSize = dwBuffSize - dwGeneralAvg * (dwThreadCnt - 1);
+        }
+        else
+        {
+            stThreadParam.dwBuffSize = dwGeneralAvg;
+        }
+        stThreadParam.strSource = vecFiles[i];
+        vecThreadList.emplace_back(stThreadParam);
+    }
+
+    std::cout << "thread prepare..." << vecThreadList.size() << std::endl;
+    //多线程同时压缩数据
+    for(auto& param : vecThreadList)
+    {
+        threadPool.create_thread(boost::bind(CompressAFile, &param));
+    }
+
+    threadPool.join_all();    
+    
+    std::cout << "thread finished" << std::endl;
+    //处理完成重组数据
+    std::vector<std::string> vecResultFiles;
+    for(const auto& param : vecThreadList)
+    {
+        vecResultFiles.emplace_back(param.strOutFile);
+    }
+
+    std::cout << "ready to combain files" << std::endl;
+    //重组数据
+    CombainFiles(vecResultFiles, rstrOut, dwBuffSize);
+
+    //清理中间文件
+    fs::remove(fs::path(rstrAchiveFile));
+    for(const auto& file : vecFiles)
+    {
+        fs::remove(fs::path(file));
+    }
+    for(const auto& file : vecResultFiles)
+    {
+        fs::remove(fs::path(file));
+    }
+
+    return 0;
+}
+
+void CFileUtil::CompressAFile(void* pParam)
+{
+    assert(pParam != nullptr);
+    ThreadParam* pTParam = (ThreadParam*)pParam;
+    std::cout << pTParam->strOutFile << pTParam->strSource << pTParam->dwBuffSize << std::endl;
+    GetTmpMiddleFile(pTParam->strOutFile, true, 2);
+    std::cout << "  thread source--->" << pTParam->strSource << std::endl;
+    std::cout << "  thread result--->" << pTParam->strOutFile << std::endl;
+    std::unique_ptr< std::ostream > osp = std::unique_ptr< std::ostream >(new zio::ofstream(pTParam->strOutFile, pTParam->dwBuffSize));
+    std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(pTParam->strSource));
+    std::istream * isp = ifsp.get();
+    CatStream(*isp, *osp, pTParam->dwBuffSize);
+}
+
+int CFileUtil::CutFileIntoPieces(const std::string& rstrIn, std::vector<std::string>& rVecOutFiles, uint32_t dwBlcok)
+{
+    assert(dwBlcok > 0);
+    std::cout << "CutFileIntoPieces：" << rstrIn << std::endl;
+    std::ifstream inAchiFile(rstrIn);
+    if(!inAchiFile.is_open())
+    {
+        return 1;
+    }
+    inAchiFile.seekg(0, inAchiFile.end);
+    uint64_t ullTotalFileSize = inAchiFile.tellg();
+    uint64_t ullSizeAvg = floor(ullTotalFileSize / dwBlcok);
+    uint64_t ullLastPartSize = ullTotalFileSize - ullSizeAvg * (dwBlcok - 1);
+    //恢复文件指针
+    inAchiFile.seekg(0, inAchiFile.beg);
+    for (uint32_t dwCurrent = 0; dwCurrent < dwBlcok && inAchiFile.peek() != EOF; ++dwCurrent)
+    {
+        std::string strOutFile;
+        GetTmpMiddleFile(strOutFile, true, 1);
+        std::ofstream outFile(strOutFile, std::ofstream::binary);
+        char bReadByte;
+        bool bLast = (dwCurrent == dwBlcok -1);
+
+        for (uint64_t ullReadBytes = 0; ullReadBytes < (bLast ? ullLastPartSize : ullSizeAvg); ++ullReadBytes)
+        {
+            inAchiFile.read(&bReadByte, sizeof(char));
+            outFile.write(&bReadByte, sizeof(char));
+        }
+        outFile.close();
+        rVecOutFiles.emplace_back(strOutFile);
+    }
+    inAchiFile.close();
+    return 0;
+}
+
+void CFileUtil::CombainFiles(const std::vector<std::string>& rVecInFiles, const std::string& rstrOutFile, uint32_t dwBuffSize)
+{
+    std::ostream * osp = &std::cout;
+    std::unique_ptr< std::ofstream > ofsp;
+    ofsp = std::unique_ptr< std::ofstream >(new strict_fstream::ofstream(rstrOutFile));
+    osp = ofsp.get();
+
+    for(const auto& file : rVecInFiles)
+    {
+        std::cout << "combain file : " << file << std::endl;
+        std::unique_ptr< std::istream > isp = std::unique_ptr< std::istream >(new strict_fstream::ifstream(file));
+        CatStream(*isp, *osp, dwBuffSize);
+    }
 }
 
 int CFileUtil::Uncompress(const std::string& rstrIn, const std::string& rstrOut, uint32_t dwBuffSize, uint32_t dwCpuCore)
@@ -387,10 +547,8 @@ int CFileUtil::ArchiveOneFileOrDir(const std::string& rstrSource, std::ofstream&
         else
         {
             //如果文件大小小于缓冲区大小
-            std::cout << "file length < buffer size" << std::endl;
             iReadyFile.read(szBuff, dwBuffSize);
             uint32_t dwSize = iReadyFile.gcount();
-            std::cout << "actual write bytes:" << dwSize << std::endl;
             rofArchiveFile.write(szBuff, dwSize);
         }
         

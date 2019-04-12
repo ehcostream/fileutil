@@ -1,94 +1,108 @@
 #include "FileUtil.h"
 #include <boost/lexical_cast.hpp>
+#include <boost/program_options.hpp>
+
+namespace po = boost::program_options;
 int main(int argc, char** argv)
 {
-    auto usage = [](std::ostream& os, const std::string& prog_name)
+    /*auto usage = [](std::ostream& os, const std::string& prog_name)
     {
         os << "Use: " << prog_name << " [-c] [-o output_file] files..." << std::endl
            << "Synposis:" << std::endl
            << "  Decompress (with `-c`, compress) files to stdout (with `-o`, to output_file)." << std::endl;
-    };
-
+    };*/
 
     bool bCompress = false;
     int nEncode = -1;
     //默认根目录为当前目录
-    std::string strOut = ".";
-    std::string strInFile;
-    int c;
+    std::string strOut;
+    //int c;
     //默认CPU核数为1
-    int dwCpuCore = 1;
     //默认使用1M
-    uint32_t dwMaxBuff = 1 << 20; 
-    while ((c = getopt(argc, argv, "csouCB:hde?")) != -1)
+
+    po::options_description ops("command");
+    po::variables_map vm;
+
+    uint32_t dwCpuCore;
+    uint64_t ullMaxBuffSize;
+    std::vector<std::string> vecFiles;
+    ops.add_options()
+        ("compress_files,c", po::value<std::vector<std::string>>()->multitoken(), "files need to be compressed")
+        ("uncompress_file,u", po::value<std::string>(), "files need to be uncompressed")
+        ("file_need_to_be_encode,e", po::value<std::string>(), "file need to be encoded")
+        ("file_need_to_be_decode,d", po::value<std::string>(), "file need to be decoded")
+        ("Cpu_core,C", po::value<uint32_t>(&dwCpuCore)->default_value(1), "cpu cores")
+        ("Buffer_size,B", po::value<uint64_t>(&ullMaxBuffSize)->default_value(1<<20), "max buffer size")
+        ("out_put_file,o", po::value<std::string>(&strOut)->default_value(std::string(".")),"output files")
+    ;
+    po::store(po::parse_command_line(argc, argv, ops), vm);
+    po::notify(vm);
+
+    if (vm.count("compress_files")) 
     {
-        switch (c)
+        bCompress = true;
+        std::cout << "compress files: ";
+        for (auto& v: vm["compress_files"].as<std::vector<std::string>>())
         {
-        case 'c':
-            bCompress = true;
-            //strInFile = argv[optind];
-            break;
-        case 's':
-            strInFile = argv[optind];
-            break;
-        case 'o':
-            strOut = argv[optind];
-            break;
-        case 'u':
-            strInFile = argv[optind];
-            break;
-        case 'C':
-            dwCpuCore = boost::lexical_cast<uint32_t>(argv[optind]);
-            std::cout << dwCpuCore << std::endl;
-            break;
-        case 'B':
-            dwMaxBuff = boost::lexical_cast<uint32_t>(argv[optind]);
-            std::cout << dwMaxBuff << std::endl;
-            break;
-        case '?':
-        case 'h':
-            usage(std::cout, argv[0]);
-            std::exit(EXIT_SUCCESS);
-            break;
-        case 'd':
-            nEncode = 0;
-            break;
-        case 'e':
-            nEncode = 1;
-            break;
-        default:
-            usage(std::cerr, argv[0]);
-            std::exit(EXIT_FAILURE);
+            std::cout << v << " ";
         }
+        std::cout << std::endl;
+    }
+    if (vm.count("uncompress_file")) 
+    {
+        std::string tmp = vm["uncompress_file"].as<std::string>();
+        std::cout << "uncompress_file:" << tmp << std::endl;
+    }
+    if (vm.count("file_need_to_be_encode")) 
+    {
+        nEncode = 1;
+        std::cout << "file_need_to_be_encode " << vm["file_need_to_be_encode"].as<std::string>() << std::endl;
+    }
+    if (vm.count("file_need_to_be_decode")) 
+    {
+        nEncode = 0;
+        std::cout << "file_need_to_be_decode:" << vm["file_need_to_be_decode"].as<std::string>() << std::endl;
+    }
+    if (vm.count("Cpu_core")) 
+    {
+        std::cout << "Cpu_core:" << vm["Cpu_core"].as<uint32_t>() << std::endl;
+    }
+    if (vm.count("Buffer_size")) 
+    {
+        std::cout << "Buffer_size:" << vm["Buffer_size"].as<uint64_t>() << std::endl;
+    }
+    if (vm.count("out_put_file")) 
+    {
+        std::cout << "out_put_file:" << vm["out_put_file"].as<std::string>() << std::endl;
     }
 
     if(nEncode > -1)
     {
         if(nEncode)
         {
-            CFileUtil::EncodeFile(strInFile, strOut);
+            CFileUtil::EncodeFile(vm["file_need_to_be_encode"].as<std::string>(), vm["out_put_file"].as<std::string>());
         }
         else
         {
-            CFileUtil::DecodeFile(strInFile, strOut);
+            CFileUtil::DecodeFile(vm["file_need_to_be_decode"].as<std::string>(), vm["out_put_file"].as<std::string>());
         }
         return 0;
     }
     
     if (bCompress)
     {
-        std::vector<std::string> vecFiles(&argv[optind+1], &argv[argc]);
-        std::cout << "infiles:" << std::endl;
-        for(const auto& it : vecFiles)
-        {
-            std::cout << it << std::endl;
-        }
-        std::cout << "out file:" << strOut << std::endl;
-        
-        CFileUtil::Compress(vecFiles, strOut, 1 << 20);
+        CFileUtil::Compress(vm["compress_files"].as<std::vector<std::string>>(),
+                            vm["out_put_file"].as<std::string>(),
+                            vm["Buffer_size"].as<uint64_t>(), 
+                            vm["Cpu_core"].as<uint32_t>()
+                            );
     }
     else
     {
-        CFileUtil::Uncompress(strInFile, strOut, 1 << 20);
+        CFileUtil::Uncompress(vm["uncompress_file"].as<std::string>(),
+                              vm["out_put_file"].as<std::string>(),
+                              vm["Buffer_size"].as<uint64_t>(), 
+                              vm["Cpu_core"].as<uint32_t>()
+                              );
     }
 }

@@ -8,7 +8,7 @@ project(zlibutil)
 
 find_package(ZLIB REQUIRED)
 
-find_package(Boost COMPONENTS filesystem system REQUIRED)
+find_package(Boost COMPONENTS filesystem system thread program_options REQUIRED)
 
 set(CMAKE_CXX_FLAGS_DEBUG "-std=c++11 -g -O2 -Wall -Werror -z defs -mcmodel=medium")
 
