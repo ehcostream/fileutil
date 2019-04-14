@@ -49,12 +49,23 @@ cmake .
 make生成bin/fz即可
 ## 如何使用
 压缩
-`./bin/fz -c [filename1 filename2 ... n][directory1 directory2... n] -o directory`
+```
+./bin/fz -c [filename1 filename2 ... n][directory1 directory2... n] -o directory
+```
+
 解压
-`./bin/fz -u compressed_filename -o directory`
+```
+./bin/fz -u compressed_filename -o directory
+```
+
 加密
-`./bin/fz -e compressed_filename -o directory`
+```
+./bin/fz -e compressed_filename -o directory
+```
+
 解密
-`./bin/fz -d encoded_filename -o directory`
+```
+./bin/fz -d encoded_filename -o directory
+```
 #zlibutil
 
