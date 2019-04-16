@@ -6,81 +6,26 @@
  *      Brief:  文件相关操作工具
  */
 
-#ifndef FILEUTIL_H
-#define FILEUTIL_H
+#ifndef __FILEUTIL_H__
+#define __FILEUTIL_H__
 
-#include <string>
-#include <memory>
-#include <cstdio>
-#include <stdio.h>
-#include <iostream>
-#include <fstream>
-#include <string.h>
-#include <time.h>
-#include <vector>
-#include <zlib.h>
-#include <cmath>
-#include <assert.h>
-#include <chrono>
-#include <boost/thread/thread.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/asio/io_service.hpp>
-#include <boost/bind.hpp>
-#include "zio.cpp"
-
-namespace fs = boost::filesystem;
-
-//进行归档的文件的头部信息
-enum FileType
-{
-    FT_UNKNOW = 0x00,
-    FT_FILE = 0x01,
-    FT_DIR = 0x02,
-    FT_MAX
-};
-
-struct FileInfo
-{
-    //文件类型
-    char bFType;
-    //文件大小，满足文件大小大于4G的情况
-    uint64_t ullFSize;
-    //文件路径
-    char szFPath[255];
-};
-
-//加密文件头信息
-struct EncodeHeaderInfo
-{
-    //加密文件类型
-    char szExt[10];
-    //文件原名称
-    char szFilename[255];
-};
-
-//线程参数
-struct ThreadParam
-{
-    uint32_t dwBuffSize;
-    std::string strSource;
-    std::string strOutFile;
-};
+#include "zlibutil.h"
 
 class CFileUtil
 {
 public:
-    static int Compress(const std::vector<std::string>& rVecFile, const std::string& rstrOut, uint32_t dwBuffSize, uint32_t dwCpuCore = 1);
-
-    static int CompressWithMT(const std::string rstrAchiveFile, uint32_t dwBuffSize, uint32_t dwCpuCore, const std::string& rstrOut);
-
+    static int Compress(const std::vector<std::string>& rVecFile, const std::string& rstrOut, uint32_t dwBuffSize, uint32_t dwCpuCore, std::string& rstrOutFile);
+    
     static int Uncompress(const std::string& rstrIn, const std::string& rstrOut, uint32_t dwBuffSize,  uint32_t dwCpuCore = 1);
 
-    static int EncodeFile(const std::string& rstrSource, const std::string& rstrEncodeFileDir);
+    static int EncodeFile(const std::string& rstrSource, const std::string& rstrEncodeFileDir, std::string& rstrOutFile);
 
-    static int DecodeFile(const std::string& rstrEncodeFile, const std::string& rstrDecodeFileDir);
+    static int DecodeFile(const std::string& rstrEncodeFile, const std::string& rstrDecodeFileDir, std::string& rstrOutFile);
 
 private:
+    //多线程压缩
+    static int CompressWithMT(const std::string rstrAchiveFile, uint32_t dwBuffSize, uint32_t dwCpuCore, const std::string& rstrOut);
+
     //单个线程压缩流
     static void CompressAFile(void* pParam);
 
@@ -88,7 +33,7 @@ private:
     static bool CatStream(std::istream& ris, std::ostream& ros, uint32_t dwBuffSize);
 
     //加(解)密文件
-    static int EncodeFile2(const std::string& rstrSource, const std::string& rstrOut, bool bEncode);
+    static int EncodeFile2(const std::string& rstrSource, const std::string& rstrOut, bool bEncode, std::string& rstrOutFile);
 
     //rstrOut为文件夹
     static int Archive(const std::vector<std::string>& rVecFile, const std::string& rstrOut, uint32_t dwBuffSize);
@@ -113,4 +58,4 @@ private:
 };
 
 #endif
-//FILEUTIL_H
+//__FILEUTIL_H__

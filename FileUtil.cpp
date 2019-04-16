@@ -34,8 +34,9 @@ void CFileUtil::GetTmpMiddleFile(std::string& rstrAchiveFile, bool bAchive, int 
     rstrAchiveFile = arFilePath.string();
 }
 
-int CFileUtil::Compress(const std::vector<std::string>& rVecFile, const std::string& rstrOut, uint32_t dwBuffSize, uint32_t dwCpuCore)
+int CFileUtil::Compress(const std::vector<std::string>& rVecFile, const std::string& rstrOut, uint32_t dwBuffSize, uint32_t dwCpuCore, std::string& rstrOutFile)
 {
+    std::cout << "Compress" << std::endl;
     assert(rVecFile.size() > 0);
     //归档
     std::string strMidFile;
@@ -81,7 +82,7 @@ int CFileUtil::Compress(const std::vector<std::string>& rVecFile, const std::str
     strTargetFile.append(strExtension);
     outFilePath /= strTargetFile;
     std::cout << "compress out file :" << outFilePath << std::endl;
-
+    rstrOutFile = outFilePath.string();
     if(dwCpuCore > 1)
     {
         //多线程压缩
@@ -265,16 +266,16 @@ int CFileUtil::Uncompress(const std::string& rstrIn, const std::string& rstrOut,
     return 0;
 }
 
-int CFileUtil::EncodeFile(const std::string& rstrSource, const std::string& rstrEncodeFileDir)
+int CFileUtil::EncodeFile(const std::string& rstrSource, const std::string& rstrEncodeFileDir, std::string& rstrOutFile)
 {
     //加密后文件名称：源文件文件名+.spc
     std::cout << "encodefile:" << rstrSource << std::endl;
-    return EncodeFile2(rstrSource, rstrEncodeFileDir, true);
+    return EncodeFile2(rstrSource, rstrEncodeFileDir, true, rstrOutFile);
 }
 
-int CFileUtil::DecodeFile(const std::string& rstrEncodeFile, const std::string& rstrDecodeFileDir)
+int CFileUtil::DecodeFile(const std::string& rstrEncodeFile, const std::string& rstrDecodeFileDir, std::string& rstrOutFile)
 {
-    return EncodeFile2(rstrEncodeFile, rstrDecodeFileDir, false);
+    return EncodeFile2(rstrEncodeFile, rstrDecodeFileDir, false, rstrOutFile);
 }
 
 bool CFileUtil::CatStream(std::istream& ris, std::ostream& ros, uint32_t dwBuffSize)
@@ -302,7 +303,7 @@ bool CFileUtil::CatStream(std::istream& ris, std::ostream& ros, uint32_t dwBuffS
     
 }
 
-int CFileUtil::EncodeFile2(const std::string& rstrSource, const std::string& rstrOut, bool bEncode)
+int CFileUtil::EncodeFile2(const std::string& rstrSource, const std::string& rstrOut, bool bEncode, std::string& rstrOutFile)
 {
     //判断输出文件夹是否存在如果不存在，则创建
     fs::path filePath(rstrOut);
@@ -349,7 +350,6 @@ int CFileUtil::EncodeFile2(const std::string& rstrSource, const std::string& rst
         }
         else
         {
-            
             if(std::string(ehInfo.szExt) != strExt)
             {
                 nError = 4;
@@ -381,7 +381,7 @@ int CFileUtil::EncodeFile2(const std::string& rstrSource, const std::string& rst
             in.get(c);
             out << (char)(~c);
         }
-
+        rstrOutFile = strOutFile;
     }while(false);
 
     if(nError == 0 )
