@@ -376,7 +376,7 @@ class ifstream
       public std::istream
 {
 public:
-    explicit ifstream(const std::string& filename, uint32_t dwBuffSize, std::ios_base::openmode mode = std::ios_base::in)
+    explicit ifstream(const std::string& filename, uint64_t dwBuffSize, std::ios_base::openmode mode = std::ios_base::in)
         : detail::strict_fstream_holder< strict_fstream::ifstream >(filename, mode),
           std::istream(new istreambuf(_fs.rdbuf(), dwBuffSize))
     {
@@ -393,7 +393,7 @@ class ofstream
       public std::ostream
 {
 public:
-    explicit ofstream(const std::string& filename, uint32_t dwBuffSize, std::ios_base::openmode mode = std::ios_base::out)
+    explicit ofstream(const std::string& filename, uint64_t dwBuffSize, std::ios_base::openmode mode = std::ios_base::out)
         : detail::strict_fstream_holder< strict_fstream::ofstream >(filename, mode | std::ios_base::binary),
           std::ostream(new ostreambuf(_fs.rdbuf(), dwBuffSize))
     {
