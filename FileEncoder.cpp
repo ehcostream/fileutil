@@ -2,6 +2,7 @@
 
 int CFileEncoder::Execute(const std::vector<std::string>& rvecFiles, const std::string& rstrOutDir, void* pExParam, std::string& rstrOutFile)
 {
-	std::cout << __FILE__ << "\t" << __FUNCTION__ << std::endl;
+	assert(rvecFiles.size() == 1);
+	SymEncode(rvecFiles.front(), rstrOutDir, true, rstrOutFile);
 	return 0;
 }
