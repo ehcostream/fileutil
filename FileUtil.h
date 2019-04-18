@@ -8,8 +8,7 @@
 
 #ifndef __FILEUTIL_H__
 #define __FILEUTIL_H__
-
-#include "zlibutil.h"
+#include "Zlibutil.h"
 
 class CFileUtil
 {
@@ -18,9 +17,9 @@ public:
     
     static int Uncompress(const std::string& rstrIn, const std::string& rstrOut, uint32_t dwBuffSize,  uint32_t dwCpuCore = 1);
 
-    static int EncodeFile(const std::string& rstrSource, const std::string& rstrEncodeFileDir, std::string& rstrOutFile);
+    static int EncodeFile(const std::string& rstrSource, const std::string& rstrEncodeFileDir, const std::string& rstrKey, std::string& rstrOutFile);
 
-    static int DecodeFile(const std::string& rstrEncodeFile, const std::string& rstrDecodeFileDir, std::string& rstrOutFile);
+    static int DecodeFile(const std::string& rstrEncodeFile, const std::string& rstrDecodeFileDir, const std::string& rstrKey, std::string& rstrOutFile);
 
 private:
     //多线程压缩
@@ -29,11 +28,11 @@ private:
     //单个线程压缩流
     static void CompressAFile(void* pParam);
 
-    //将文件流输出到加密/解密流中
-    static bool CatStream(std::istream& ris, std::ostream& ros, uint32_t dwBuffSize);
-
     //加(解)密文件
     static int EncodeFile2(const std::string& rstrSource, const std::string& rstrOut, bool bEncode, std::string& rstrOutFile);
+
+    //将文件流输出到加密/解密流中
+    static bool CatStream(std::istream& ris, std::ostream& ros, uint32_t dwBuffSize);
 
     //rstrOut为文件夹
     static int Archive(const std::vector<std::string>& rVecFile, const std::string& rstrOut, uint32_t dwBuffSize);

@@ -266,14 +266,14 @@ int CFileUtil::Uncompress(const std::string& rstrIn, const std::string& rstrOut,
     return 0;
 }
 
-int CFileUtil::EncodeFile(const std::string& rstrSource, const std::string& rstrEncodeFileDir, std::string& rstrOutFile)
+int CFileUtil::EncodeFile(const std::string& rstrSource, const std::string& rstrEncodeFileDir, const std::string& rstrKey, std::string& rstrOutFile)
 {
     //加密后文件名称：源文件文件名+.spc
     std::cout << "encodefile:" << rstrSource << std::endl;
     return EncodeFile2(rstrSource, rstrEncodeFileDir, true, rstrOutFile);
 }
 
-int CFileUtil::DecodeFile(const std::string& rstrEncodeFile, const std::string& rstrDecodeFileDir, std::string& rstrOutFile)
+int CFileUtil::DecodeFile(const std::string& rstrEncodeFile, const std::string& rstrDecodeFileDir, const std::string& rstrKey, std::string& rstrOutFile)
 {
     return EncodeFile2(rstrEncodeFile, rstrDecodeFileDir, false, rstrOutFile);
 }

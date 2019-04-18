@@ -1,6 +1,8 @@
 #ifndef __ZLIB_UTIL_H__
 #define __ZLIB_UTIL_H__
 
+#include <iostream>
+#include <vector>
 #include <string>
 #include <memory>
 #include <cstdio>
@@ -10,17 +12,22 @@
 #include <string.h>
 #include <time.h>
 #include <vector>
-#include <zlib.h>
 #include <cmath>
 #include <assert.h>
 #include <chrono>
+
 #include <boost/thread/thread.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/bind.hpp>
+#include <unordered_map>
+#include <boost/lexical_cast.hpp>
+#include <boost/program_options.hpp>
+#include <boost/any.hpp>
+#include <zlib.h>
 #include "zio.cpp"
-
+#include "Version.h"
 namespace fs = boost::filesystem;
 
 //进行归档的文件的头部信息

@@ -1,9 +1,5 @@
-#include "FileUtil.h"
-#include <unordered_map>
-#include <boost/lexical_cast.hpp>
-#include <boost/program_options.hpp>
-#include <boost/any.hpp>
-#include "zlibutil.h"
+#include "FileUtilGenerator.h"
+#include "FileUtilGeneratorAsync.h"
 
 namespace po = boost::program_options;
 
@@ -164,7 +160,7 @@ OperationType GetCommandParam(int argc, char** argv, PARAMMAP& rParamMap)
 int main(int argc, char** argv)
 {
     //获取命令行参数
-    PARAMMAP stParamMap;
+    /*PARAMMAP stParamMap;
     OperationType ot = GetCommandParam(argc, argv, stParamMap);
 
     std::cout << "in operation..." << std::endl;
@@ -231,7 +227,40 @@ int main(int argc, char** argv)
         default:
             std::cout << "invalid arguments." << std::endl;
         break;
-    }
+    }*/
+    std::string strEmptyFile;
 
+    //入参
+    std::vector<std::string> stvecFiles;
+    stvecFiles.emplace_back("...");
+    std::string strOutDir = ".";
+    //出参
+    std::string strOutFile;
+
+    //同步工厂
+    CFileUtilGeneratorBase& pstBase = CFileUtilGenerator::Instance();
+
+    std::unique_ptr<CFileUtilBase> pstCompresser = std::unique_ptr<CFileUtilBase>(pstBase.CreateCompresser());
+    std::unique_ptr<CFileUtilBase> pstEncoder = std::unique_ptr<CFileUtilBase>(pstBase.CreateEncoder());
+    std::unique_ptr<CFileUtilBase> pstUncompresser = std::unique_ptr<CFileUtilBase>(pstBase.CreateUncompresser(strEmptyFile));
+    std::unique_ptr<CFileUtilBase> pstDecoder = std::unique_ptr<CFileUtilBase>(pstBase.CreateDecoder(strEmptyFile));
+
+    pstCompresser->Execute(stvecFiles, strOutDir, nullptr, strOutFile);
+    pstEncoder->Execute(stvecFiles, strOutDir, nullptr, strOutFile);
+    pstUncompresser->Execute(stvecFiles, strOutDir, nullptr, strOutFile);
+    pstDecoder->Execute(stvecFiles, strOutDir, nullptr, strOutFile);
+
+    //异步工厂
+    CFileUtilGeneratorBase& pstBase1 = CFileUtilGeneratorAsync::Instance();
+
+    std::unique_ptr<CFileUtilBase> pstCompresser1 = std::unique_ptr<CFileUtilBase>(pstBase1.CreateCompresser());
+    std::unique_ptr<CFileUtilBase> pstEncoder1 = std::unique_ptr<CFileUtilBase>(pstBase1.CreateEncoder());
+    std::unique_ptr<CFileUtilBase> pstUncompresser1 = std::unique_ptr<CFileUtilBase>(pstBase1.CreateUncompresser(strEmptyFile));
+    std::unique_ptr<CFileUtilBase> pstDecoder1 = std::unique_ptr<CFileUtilBase>(pstBase1.CreateDecoder(strEmptyFile));
+    
+    pstCompresser1->Execute(stvecFiles, strOutDir, nullptr, strOutFile);
+    pstEncoder1->Execute(stvecFiles, strOutDir, nullptr, strOutFile);
+    pstUncompresser1->Execute(stvecFiles, strOutDir, nullptr, strOutFile);
+    pstDecoder1->Execute(stvecFiles, strOutDir, nullptr, strOutFile);
     return 0;
 }
