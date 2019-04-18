@@ -15,7 +15,7 @@ public:
 
 protected:
 //常用的文件操作
-	//文件内容迁移
+	//文件内容复制
 	bool CatStream(std::istream& ris, std::ostream& ros);
 
     //归档
@@ -38,6 +38,7 @@ protected:
 
     //合并多个文件为一个文件
     void CombainFiles(const std::vector<std::string>& rVecInFiles, const std::string& rstrOutFile);
+
 
 protected:
     uint32_t m_dwCpuCore = CPU_CORE_DEFAULE;
