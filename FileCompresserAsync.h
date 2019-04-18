@@ -1,7 +1,7 @@
 #pragma once 
-#include "FileUtilBase.h"
+#include "FileUtil4Zlib.h"
 
-class CFileCompresserAsync : public CFileUtilBase
+class CFileCompresserAsync : public CFileUtil4Zlib
 {
 public:
 	int 

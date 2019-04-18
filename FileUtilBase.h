@@ -1,6 +1,7 @@
 #pragma once 
 #include "Zlibutil.h"
 
+typedef int (*Callback)();
 class CFileUtilBase
 {
 public:

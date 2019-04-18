@@ -25,6 +25,7 @@ static const std::string PKM_FD = "file_decode";
 static const std::string PKM_CPU = "cpu_cores";
 static const std::string PKM_MB = "max_buffer";
 static const std::string PKM_OUT = "out_file";
+static const std::string PKM_ASYNC = "async";
 
 //参数检查&获取当前操作类型
 OperationType GetOperResult(int nCompress, int nEncode)
@@ -85,19 +86,20 @@ OperationType GetOperResult(int nCompress, int nEncode)
 };
 
 //命令行参数转换map
-OperationType GetCommandParam(int argc, char** argv, PARAMMAP& rParamMap)
+OperationType GetCommandParam(int argc, char** argv, PARAMMAP& rParamMap, bool& rnAsync)
 {
         std::string strOut;
         uint32_t dwCpuCore;
         uint64_t ullMaxBuffSize;
         int nCompress = -1;
         int nEncode = -1;
-
+        rnAsync = false;
         try
         {
             po::options_description ops("command");
             po::variables_map vm;
             ops.add_options()
+                ("async,ay", "non block mode")
                 ("files_compress,c", po::value<std::vector<std::string>>()->multitoken(), "files need to be compressed")
                 ("file_uncompress,u", po::value<std::string>(), "files need to be uncompressed")
                 ("file_encode,e", po::value<std::string>(), "file need to be encoded")
@@ -147,6 +149,10 @@ OperationType GetCommandParam(int argc, char** argv, PARAMMAP& rParamMap)
             {
                 rParamMap[PKM_OUT] = vm[PKM_OUT].as<std::string>();
             }
+            if (vm.count(PKM_ASYNC)) 
+            {
+                rnAsync = true;
+            }
         }
         catch(...)
         {
@@ -162,31 +168,23 @@ int main(int argc, char** argv)
     std::string strEmptyFile;
     std::string strOutFile;
 
-    //同步工厂
-    CFileUtilGeneratorBase& pstBase = CFileUtilGenerator::Instance();
-
-    //生成相应的工具
-    std::unique_ptr<CFileUtilBase> pstCompresser = std::unique_ptr<CFileUtilBase>(pstBase.CreateCompresser());
-    std::unique_ptr<CFileUtilBase> pstEncoder = std::unique_ptr<CFileUtilBase>(pstBase.CreateEncoder());
-    std::unique_ptr<CFileUtilBase> pstUncompresser = std::unique_ptr<CFileUtilBase>(pstBase.CreateUncompresser(strEmptyFile));
-    std::unique_ptr<CFileUtilBase> pstDecoder = std::unique_ptr<CFileUtilBase>(pstBase.CreateDecoder(strEmptyFile));
-
-    /*//异步工厂
-    CFileUtilGeneratorBase& pstBase1 = CFileUtilGeneratorAsync::Instance();
-
-    std::unique_ptr<CFileUtilBase> pstCompresser1 = std::unique_ptr<CFileUtilBase>(pstBase1.CreateCompresser());
-    std::unique_ptr<CFileUtilBase> pstEncoder1 = std::unique_ptr<CFileUtilBase>(pstBase1.CreateEncoder());
-    std::unique_ptr<CFileUtilBase> pstUncompresser1 = std::unique_ptr<CFileUtilBase>(pstBase1.CreateUncompresser(strEmptyFile));
-    std::unique_ptr<CFileUtilBase> pstDecoder1 = std::unique_ptr<CFileUtilBase>(pstBase1.CreateDecoder(strEmptyFile));
-    
-    pstCompresser1->Execute(stvecFiles, strOutDir, nullptr, strOutFile);
-    pstEncoder1->Execute(stvecFiles, strOutDir, nullptr, strOutFile);
-    pstUncompresser1->Execute(stvecFiles, strOutDir, nullptr, strOutFile);
-    pstDecoder1->Execute(stvecFiles, strOutDir, nullptr, strOutFile);*/
-
     //获取命令行参数
     PARAMMAP stParamMap;
-    OperationType ot = GetCommandParam(argc, argv, stParamMap);
+    bool bAsync = false;
+    OperationType ot = GetCommandParam(argc, argv, stParamMap, bAsync);
+
+    CFileUtilGeneratorBase* pstBase = nullptr;
+    std::cout << "mode:" << bAsync << std::endl;
+    if(bAsync)
+        pstBase = &CFileUtilGeneratorAsync::Instance();
+    else
+        pstBase = &CFileUtilGenerator::Instance();
+
+    //生成相应的工具
+    std::unique_ptr<CFileUtilBase> pstCompresser = std::unique_ptr<CFileUtilBase>(pstBase->CreateCompresser());
+    std::unique_ptr<CFileUtilBase> pstEncoder = std::unique_ptr<CFileUtilBase>(pstBase->CreateEncoder());
+    std::unique_ptr<CFileUtilBase> pstUncompresser = std::unique_ptr<CFileUtilBase>(pstBase->CreateUncompresser(strEmptyFile));
+    std::unique_ptr<CFileUtilBase> pstDecoder = std::unique_ptr<CFileUtilBase>(pstBase->CreateDecoder(strEmptyFile));
 
     std::cout << "in operation..." << std::endl;
     
@@ -270,7 +268,6 @@ int main(int argc, char** argv)
             std::cout << "invalid arguments." << std::endl;
         break;
     }
-
-    
+    sleep(1);
     return 0;
 }

@@ -1,6 +1,8 @@
 #pragma once 
 #include "FileUtilBase.h"
-class CFileDecoderAsync : public CFileUtilBase
+#include "SymCrypto.h"
+
+class CFileDecoderAsync : public CFileUtilBase, public CSymCrypto
 {
 public:
 	int 

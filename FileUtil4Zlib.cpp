@@ -171,9 +171,9 @@ void CFileUtil4Zlib::CompressAFile(void* pParam)
     ThreadParam* pTParam = (ThreadParam*)pParam;
     GetTmpMiddleFile(pTParam->strOutFile, true, 2);
     std::cout << "  thread source--->" << pTParam->strSource << std::endl;
-    std::cout << "  thread result--->" << pTParam->strOutFile << std::endl;
     std::unique_ptr< std::ostream > osp = std::unique_ptr< std::ostream >(new zio::ofstream(pTParam->strOutFile, pTParam->ullBuffSize));
     std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(pTParam->strSource));
     std::istream * isp = ifsp.get();
     CatStream(*isp, *osp);
+    std::cout << "  thread result--->" << pTParam->strOutFile << std::endl;
 }
