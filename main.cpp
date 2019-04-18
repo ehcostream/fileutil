@@ -159,98 +159,19 @@ OperationType GetCommandParam(int argc, char** argv, PARAMMAP& rParamMap)
 
 int main(int argc, char** argv)
 {
-    //获取命令行参数
-    /*PARAMMAP stParamMap;
-    OperationType ot = GetCommandParam(argc, argv, stParamMap);
-
-    std::cout << "in operation..." << std::endl;
-    std::string strOutFile;
     std::string strEmptyFile;
-    switch(ot)
-    {
-        case OT_COMPRESS:
-        {
-            std::vector<std::string> stFiles = boost::any_cast<std::vector<std::string>>(stParamMap[PKM_FC]);
-            CFileUtil::Compress(boost::any_cast<std::vector<std::string>>(stParamMap[PKM_FC]), 
-                                boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
-                                boost::any_cast<uint64_t>(stParamMap[PKM_MB]),
-                                boost::any_cast<uint32_t>(stParamMap[PKM_CPU]),
-                                strOutFile);
-        }
-        break;
-        case OT_UNCOMPRESS:
-        {
-            CFileUtil::Uncompress(boost::any_cast<std::string>(stParamMap[PKM_FU]), 
-                                  boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
-                                  boost::any_cast<uint64_t>(stParamMap[PKM_MB]), 
-                                  boost::any_cast<uint32_t>(stParamMap[PKM_CPU]));
-        }
-        break;
-        case OT_COMPRESS_WITH_ENCODE:
-        {
-            CFileUtil::Compress(boost::any_cast<std::vector<std::string>>(stParamMap[PKM_FC]), 
-                                boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
-                                boost::any_cast<uint64_t>(stParamMap[PKM_MB]), 
-                                boost::any_cast<uint32_t>(stParamMap[PKM_CPU]), 
-                                strOutFile);
-            CFileUtil::EncodeFile(strOutFile, boost::any_cast<std::string>(stParamMap[PKM_OUT]), strEmptyFile);
-            fs::remove(strOutFile);
-        }
-        break;
-        case OT_DECODE_WITH_UNCOMPRESS:
-        {
-
-            CFileUtil::DecodeFile(boost::any_cast<std::string>(stParamMap[PKM_FD]), 
-                                  boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
-                                  strOutFile);
-            CFileUtil::Uncompress(strOutFile, 
-                                  boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
-                                  boost::any_cast<uint64_t>(stParamMap[PKM_MB]), 
-                                  boost::any_cast<uint32_t>(stParamMap[PKM_CPU]));
-            fs::remove(strOutFile);
-        }
-        break;
-        case OT_ENCODE:
-        {
-            CFileUtil::EncodeFile(boost::any_cast<std::string>(stParamMap[PKM_FE]), 
-                                  boost::any_cast<std::string>(stParamMap[PKM_OUT]), strEmptyFile);
-        }
-        break;
-        case OT_DECODE:
-        {
-            CFileUtil::DecodeFile(boost::any_cast<std::string>(stParamMap[PKM_FD]), 
-                                  boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
-                                  strOutFile);
-        }
-        break;
-        case OT_UNKNOW:
-        default:
-            std::cout << "invalid arguments." << std::endl;
-        break;
-    }*/
-    std::string strEmptyFile;
-
-    //入参
-    std::vector<std::string> stvecFiles;
-    stvecFiles.emplace_back("...");
-    std::string strOutDir = ".";
-    //出参
     std::string strOutFile;
 
     //同步工厂
     CFileUtilGeneratorBase& pstBase = CFileUtilGenerator::Instance();
 
+    //生成相应的工具
     std::unique_ptr<CFileUtilBase> pstCompresser = std::unique_ptr<CFileUtilBase>(pstBase.CreateCompresser());
     std::unique_ptr<CFileUtilBase> pstEncoder = std::unique_ptr<CFileUtilBase>(pstBase.CreateEncoder());
     std::unique_ptr<CFileUtilBase> pstUncompresser = std::unique_ptr<CFileUtilBase>(pstBase.CreateUncompresser(strEmptyFile));
     std::unique_ptr<CFileUtilBase> pstDecoder = std::unique_ptr<CFileUtilBase>(pstBase.CreateDecoder(strEmptyFile));
 
-    pstCompresser->Execute(stvecFiles, strOutDir, nullptr, strOutFile);
-    pstEncoder->Execute(stvecFiles, strOutDir, nullptr, strOutFile);
-    pstUncompresser->Execute(stvecFiles, strOutDir, nullptr, strOutFile);
-    pstDecoder->Execute(stvecFiles, strOutDir, nullptr, strOutFile);
-
-    //异步工厂
+    /*//异步工厂
     CFileUtilGeneratorBase& pstBase1 = CFileUtilGeneratorAsync::Instance();
 
     std::unique_ptr<CFileUtilBase> pstCompresser1 = std::unique_ptr<CFileUtilBase>(pstBase1.CreateCompresser());
@@ -261,6 +182,95 @@ int main(int argc, char** argv)
     pstCompresser1->Execute(stvecFiles, strOutDir, nullptr, strOutFile);
     pstEncoder1->Execute(stvecFiles, strOutDir, nullptr, strOutFile);
     pstUncompresser1->Execute(stvecFiles, strOutDir, nullptr, strOutFile);
-    pstDecoder1->Execute(stvecFiles, strOutDir, nullptr, strOutFile);
+    pstDecoder1->Execute(stvecFiles, strOutDir, nullptr, strOutFile);*/
+
+    //获取命令行参数
+    PARAMMAP stParamMap;
+    OperationType ot = GetCommandParam(argc, argv, stParamMap);
+
+    std::cout << "in operation..." << std::endl;
+    
+    switch(ot)
+    {
+        case OT_COMPRESS:
+        {
+            pstCompresser->SetSysParam(boost::any_cast<uint32_t>(stParamMap[PKM_CPU]),
+                                       boost::any_cast<uint64_t>(stParamMap[PKM_MB]));
+            pstCompresser->Execute(boost::any_cast<std::vector<std::string>>(stParamMap[PKM_FC]), 
+                                   boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
+                                   nullptr, 
+                                   strOutFile);
+        }
+        break;
+        case OT_UNCOMPRESS:
+        {
+            std::vector<std::string> stvecFiles;
+            stvecFiles.emplace_back(boost::any_cast<std::string>(stParamMap[PKM_FU]));
+            pstUncompresser->Execute(stvecFiles,
+                                     boost::any_cast<std::string>(stParamMap[PKM_OUT]),
+                                     nullptr,
+                                     strOutFile);
+        }
+        break;
+        case OT_COMPRESS_WITH_ENCODE:
+        {
+            pstCompresser->Execute(boost::any_cast<std::vector<std::string>>(stParamMap[PKM_FC]), 
+                                   boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
+                                   nullptr, 
+                                   strOutFile);
+            std::vector<std::string> stvecFiles;
+            stvecFiles.emplace_back(strOutFile);
+            pstEncoder->Execute(stvecFiles, 
+                                boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
+                                nullptr, 
+                                strOutFile);
+
+            fs::remove(strOutFile);
+        }
+        break;
+        case OT_DECODE_WITH_UNCOMPRESS:
+        {
+            std::vector<std::string> stvecFiles;
+            stvecFiles.emplace_back(boost::any_cast<std::string>(stParamMap[PKM_FD]));
+            pstDecoder->Execute(stvecFiles, 
+                                boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
+                                nullptr, 
+                                strOutFile);
+            stvecFiles.clear();
+            stvecFiles.emplace_back(strOutFile);
+            pstUncompresser->Execute(stvecFiles, 
+                                boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
+                                nullptr, 
+                                strOutFile);
+            fs::remove(strOutFile);
+        }
+        break;
+        case OT_ENCODE:
+        {
+            std::vector<std::string> stvecFiles;
+            stvecFiles.emplace_back(boost::any_cast<std::string>(stParamMap[PKM_FE]));
+            pstEncoder->Execute(stvecFiles, 
+                                boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
+                                nullptr, 
+                                strOutFile);
+        }
+        break;
+        case OT_DECODE:
+        {
+            std::vector<std::string> stvecFiles;
+            stvecFiles.emplace_back(boost::any_cast<std::string>(stParamMap[PKM_FD]));
+            pstDecoder->Execute(stvecFiles, 
+                                boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
+                                nullptr, 
+                                strOutFile);
+        }
+        break;
+        case OT_UNKNOW:
+        default:
+            std::cout << "invalid arguments." << std::endl;
+        break;
+    }
+
+    
     return 0;
 }

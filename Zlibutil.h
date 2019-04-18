@@ -61,7 +61,7 @@ struct EncodeHeaderInfo
 //线程参数
 struct ThreadParam
 {
-    uint32_t dwBuffSize;
+    uint64_t ullBuffSize;
     std::string strSource;
     std::string strOutFile;
 };

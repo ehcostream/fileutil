@@ -34,7 +34,7 @@ void CFileUtil::GetTmpMiddleFile(std::string& rstrAchiveFile, bool bAchive, int 
     rstrAchiveFile = arFilePath.string();
 }
 
-int CFileUtil::Compress(const std::vector<std::string>& rVecFile, const std::string& rstrOut, uint32_t dwBuffSize, uint32_t dwCpuCore, std::string& rstrOutFile)
+int CFileUtil::Compress(const std::vector<std::string>& rVecFile, const std::string& rstrOut, uint32_t ullBuffSize, uint32_t dwCpuCore, std::string& rstrOutFile)
 {
     std::cout << "Compress" << std::endl;
     assert(rVecFile.size() > 0);
@@ -42,7 +42,7 @@ int CFileUtil::Compress(const std::vector<std::string>& rVecFile, const std::str
     std::string strMidFile;
     GetTmpMiddleFile(strMidFile, true);
     assert(!strMidFile.empty());
-    Archive(rVecFile, strMidFile, dwBuffSize);
+    Archive(rVecFile, strMidFile, ullBuffSize);
 
     fs::path outDir(rstrOut);
     if(!fs::exists(outDir))
@@ -86,14 +86,14 @@ int CFileUtil::Compress(const std::vector<std::string>& rVecFile, const std::str
     if(dwCpuCore > 1)
     {
         //多线程压缩
-        CompressWithMT(strMidFile, dwBuffSize, dwCpuCore, outFilePath.string());
+        CompressWithMT(strMidFile, ullBuffSize, dwCpuCore, outFilePath.string());
     }
     else
     {
         //调用zlib进行压缩
         std::unique_ptr< std::ostream > osp =
             (not rstrOut.empty()
-             ? std::unique_ptr< std::ostream >(new zio::ofstream(outFilePath.string(), dwBuffSize))
+             ? std::unique_ptr< std::ostream >(new zio::ofstream(outFilePath.string(), ullBuffSize))
              : std::unique_ptr< std::ostream >(new zio::ostream(std::cout)));
 
         std::unique_ptr< std::ifstream > ifsp;
@@ -101,7 +101,7 @@ int CFileUtil::Compress(const std::vector<std::string>& rVecFile, const std::str
 
         ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(strMidFile));
         isp = ifsp.get();
-        CatStream(*isp, *osp, dwBuffSize);
+        CatStream(*isp, *osp, ullBuffSize);
 
         //删除临时文件
         fs::remove(fs::path(strMidFile));
@@ -111,12 +111,12 @@ int CFileUtil::Compress(const std::vector<std::string>& rVecFile, const std::str
     return 0;
 }
 
-int CFileUtil::CompressWithMT(const std::string rstrAchiveFile, uint32_t dwBuffSize, uint32_t dwCpuCore, const std::string& rstrOut)
+int CFileUtil::CompressWithMT(const std::string rstrAchiveFile, uint32_t ullBuffSize, uint32_t dwCpuCore, const std::string& rstrOut)
 {
     //切割为多个多文件
     //开启线程池，加入多个线程，根据buffsize平均分配，同时压缩文件
     //等待所有线程完成，将结果写入目标文件中
-    assert(dwBuffSize > 0 && dwCpuCore > 1);
+    assert(ullBuffSize > 0 && dwCpuCore > 1);
 
     uint32_t dwThreadCnt = dwCpuCore;
     std::vector<std::string> vecFiles;
@@ -128,7 +128,7 @@ int CFileUtil::CompressWithMT(const std::string rstrAchiveFile, uint32_t dwBuffS
     }
 
     std::vector<ThreadParam> vecThreadList;
-    uint32_t dwGeneralAvg = floor(dwBuffSize / dwThreadCnt);
+    uint32_t dwGeneralAvg = floor(ullBuffSize / dwThreadCnt);
     boost::thread_group threadPool;
     //初始化线程池
     for(uint32_t i = 0; i< dwThreadCnt; i++)
@@ -136,11 +136,11 @@ int CFileUtil::CompressWithMT(const std::string rstrAchiveFile, uint32_t dwBuffS
         ThreadParam stThreadParam;
         if(i == dwThreadCnt -1)
         {
-            stThreadParam.dwBuffSize = dwBuffSize - dwGeneralAvg * (dwThreadCnt - 1);
+            stThreadParam.ullBuffSize = ullBuffSize - dwGeneralAvg * (dwThreadCnt - 1);
         }
         else
         {
-            stThreadParam.dwBuffSize = dwGeneralAvg;
+            stThreadParam.ullBuffSize = dwGeneralAvg;
         }
         stThreadParam.strSource = vecFiles[i];
         vecThreadList.emplace_back(stThreadParam);
@@ -165,7 +165,7 @@ int CFileUtil::CompressWithMT(const std::string rstrAchiveFile, uint32_t dwBuffS
 
     std::cout << "ready to combain files" << std::endl;
     //重组数据
-    CombainFiles(vecResultFiles, rstrOut, dwBuffSize);
+    CombainFiles(vecResultFiles, rstrOut, ullBuffSize);
 
     //清理中间文件
     fs::remove(fs::path(rstrAchiveFile));
@@ -185,14 +185,14 @@ void CFileUtil::CompressAFile(void* pParam)
 {
     assert(pParam != nullptr);
     ThreadParam* pTParam = (ThreadParam*)pParam;
-    std::cout << pTParam->strOutFile << pTParam->strSource << pTParam->dwBuffSize << std::endl;
+    std::cout << pTParam->strOutFile << pTParam->strSource << pTParam->ullBuffSize << std::endl;
     GetTmpMiddleFile(pTParam->strOutFile, true, 2);
     std::cout << "  thread source--->" << pTParam->strSource << std::endl;
     std::cout << "  thread result--->" << pTParam->strOutFile << std::endl;
-    std::unique_ptr< std::ostream > osp = std::unique_ptr< std::ostream >(new zio::ofstream(pTParam->strOutFile, pTParam->dwBuffSize));
+    std::unique_ptr< std::ostream > osp = std::unique_ptr< std::ostream >(new zio::ofstream(pTParam->strOutFile, pTParam->ullBuffSize));
     std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(pTParam->strSource));
     std::istream * isp = ifsp.get();
-    CatStream(*isp, *osp, pTParam->dwBuffSize);
+    CatStream(*isp, *osp, pTParam->ullBuffSize);
 }
 
 int CFileUtil::CutFileIntoPieces(const std::string& rstrIn, std::vector<std::string>& rVecOutFiles, uint32_t dwBlcok)
@@ -230,7 +230,7 @@ int CFileUtil::CutFileIntoPieces(const std::string& rstrIn, std::vector<std::str
     return 0;
 }
 
-void CFileUtil::CombainFiles(const std::vector<std::string>& rVecInFiles, const std::string& rstrOutFile, uint32_t dwBuffSize)
+void CFileUtil::CombainFiles(const std::vector<std::string>& rVecInFiles, const std::string& rstrOutFile, uint32_t ullBuffSize)
 {
     std::ostream * osp = &std::cout;
     std::unique_ptr< std::ofstream > ofsp;
@@ -241,11 +241,11 @@ void CFileUtil::CombainFiles(const std::vector<std::string>& rVecInFiles, const 
     {
         std::cout << "combain file : " << file << std::endl;
         std::unique_ptr< std::istream > isp = std::unique_ptr< std::istream >(new strict_fstream::ifstream(file));
-        CatStream(*isp, *osp, dwBuffSize);
+        CatStream(*isp, *osp, ullBuffSize);
     }
 }
 
-int CFileUtil::Uncompress(const std::string& rstrIn, const std::string& rstrOut, uint32_t dwBuffSize, uint32_t dwCpuCore)
+int CFileUtil::Uncompress(const std::string& rstrIn, const std::string& rstrOut, uint32_t ullBuffSize, uint32_t dwCpuCore)
 {
     std::string strMidFile;
     GetTmpMiddleFile(strMidFile, false);
@@ -255,11 +255,11 @@ int CFileUtil::Uncompress(const std::string& rstrIn, const std::string& rstrOut,
     std::ostream * osp = &std::cout;
     ofsp = std::unique_ptr< std::ofstream >(new strict_fstream::ofstream(strMidFile));
     osp = ofsp.get();
-    std::unique_ptr< std::istream > isp = std::unique_ptr< std::istream >(new zio::ifstream(rstrIn, dwBuffSize));
-    CatStream(*isp, *osp, dwBuffSize);
+    std::unique_ptr< std::istream > isp = std::unique_ptr< std::istream >(new zio::ifstream(rstrIn, ullBuffSize));
+    CatStream(*isp, *osp, ullBuffSize);
 
     //解档
-    Dearchive(strMidFile, rstrOut, dwBuffSize);
+    Dearchive(strMidFile, rstrOut, ullBuffSize);
 
     //删除临时文件
     fs::remove(fs::path(strMidFile));
@@ -278,14 +278,14 @@ int CFileUtil::DecodeFile(const std::string& rstrEncodeFile, const std::string& 
     return EncodeFile2(rstrEncodeFile, rstrDecodeFileDir, false, rstrOutFile);
 }
 
-bool CFileUtil::CatStream(std::istream& ris, std::ostream& ros, uint32_t dwBuffSize)
+bool CFileUtil::CatStream(std::istream& ris, std::ostream& ros, uint32_t ullBuffSize)
 {
-    char* szBuff = new char[dwBuffSize];
+    char* szBuff = new char[ullBuffSize];
     if(szBuff)
     {
         while (true)
         {
-            ris.read(szBuff, dwBuffSize);
+            ris.read(szBuff, ullBuffSize);
             std::streamsize cnt = ris.gcount();
             if (cnt == 0)
             {
@@ -397,7 +397,7 @@ int CFileUtil::EncodeFile2(const std::string& rstrSource, const std::string& rst
     return nError;
 }
 
-int CFileUtil::Archive(const std::vector<std::string>& rVecFile, const std::string& rstrOut, uint32_t dwBuffSize)
+int CFileUtil::Archive(const std::vector<std::string>& rVecFile, const std::string& rstrOut, uint32_t ullBuffSize)
 {
     //遍历rVecFile
     //可能是单个文件，多个文件，文件夹，文件+文件夹（多级目录）
@@ -427,13 +427,13 @@ int CFileUtil::Archive(const std::vector<std::string>& rVecFile, const std::stri
                         for(fs::recursive_directory_iterator dir_end, dir(rFile); dir != dir_end; ++dir)
                         {
                             std::cout << "--" << dir->path() << std::endl;
-                            ArchiveOneFileOrDir(dir->path().string(), oArcFile, dwBuffSize);                            
+                            ArchiveOneFileOrDir(dir->path().string(), oArcFile, ullBuffSize);                            
                         }
                     }
                     else if(fs::is_regular_file(path))
                     {
                         std::cout << "is file: " << path.string() << std::endl;
-                        ArchiveOneFileOrDir(path.string(), oArcFile, dwBuffSize); 
+                        ArchiveOneFileOrDir(path.string(), oArcFile, ullBuffSize); 
                     }
                     
                 }
@@ -450,11 +450,11 @@ int CFileUtil::Archive(const std::vector<std::string>& rVecFile, const std::stri
     return nError;
 }
 
-int CFileUtil::Dearchive(const std::string& rstrArchivedFile, const std::string& rstrOut, uint32_t dwBuffSize)
+int CFileUtil::Dearchive(const std::string& rstrArchivedFile, const std::string& rstrOut, uint32_t ullBuffSize)
 {
     //
     int nError = 0;
-    assert(dwBuffSize != 0);
+    assert(ullBuffSize != 0);
 
     do
     {
@@ -475,7 +475,7 @@ int CFileUtil::Dearchive(const std::string& rstrArchivedFile, const std::string&
                 {
                     //读取一个文件头+文件内容
                     //逐文件进行解档
-                    DearchiveOneFileOrDir(iArcFile, rstrOut, dwBuffSize);
+                    DearchiveOneFileOrDir(iArcFile, rstrOut, ullBuffSize);
                 }
             }
             else
@@ -498,16 +498,16 @@ int CFileUtil::Dearchive(const std::string& rstrArchivedFile, const std::string&
 }
 
 
-int CFileUtil::ArchiveOneFileOrDir(const std::string& rstrSource, std::ofstream& rofArchiveFile, uint32_t dwBuffSize)
+int CFileUtil::ArchiveOneFileOrDir(const std::string& rstrSource, std::ofstream& rofArchiveFile, uint32_t ullBuffSize)
 {
-    assert(dwBuffSize != 0);
+    assert(ullBuffSize != 0);
     fs::path path(rstrSource);
     if(fs::is_regular_file(path))
     {
         std::ifstream iReadyFile(rstrSource, std::ifstream::binary);
 
-        //该缓冲区会被反复写入，但都是根据指定字节长度读取或者写入，因此不用每次memset(pszBuff.get(), 0, dwBuffSize);
-        std::unique_ptr<char> pszBuff = std::unique_ptr<char>(new char[dwBuffSize]);
+        //该缓冲区会被反复写入，但都是根据指定字节长度读取或者写入，因此不用每次memset(pszBuff.get(), 0, ullBuffSize);
+        std::unique_ptr<char> pszBuff = std::unique_ptr<char>(new char[ullBuffSize]);
         
         iReadyFile.seekg(0, iReadyFile.end);
         uint64_t length = iReadyFile.tellg();
@@ -523,18 +523,18 @@ int CFileUtil::ArchiveOneFileOrDir(const std::string& rstrSource, std::ofstream&
         rofArchiveFile.write((char*)&fileInfo,sizeof(FileInfo));
 
         char* szBuff = pszBuff.get();
-        if(length > dwBuffSize)
+        if(length > ullBuffSize)
         {
             //如果文件大小大于缓冲区大小
             std::cout << iReadyFile.peek() << EOF << std::endl;
             while(iReadyFile.peek() != EOF)
             {
-                iReadyFile.read(szBuff, dwBuffSize);
+                iReadyFile.read(szBuff, ullBuffSize);
 
                 if(iReadyFile)
                 {
                     //所有字符成功读取
-                    rofArchiveFile.write(szBuff, dwBuffSize);
+                    rofArchiveFile.write(szBuff, ullBuffSize);
                 }
                 else
                 {
@@ -547,7 +547,7 @@ int CFileUtil::ArchiveOneFileOrDir(const std::string& rstrSource, std::ofstream&
         else
         {
             //如果文件大小小于缓冲区大小
-            iReadyFile.read(szBuff, dwBuffSize);
+            iReadyFile.read(szBuff, ullBuffSize);
             uint32_t dwSize = iReadyFile.gcount();
             rofArchiveFile.write(szBuff, dwSize);
         }
@@ -571,7 +571,7 @@ int CFileUtil::ArchiveOneFileOrDir(const std::string& rstrSource, std::ofstream&
     return 0;
 }
 
-int CFileUtil::DearchiveOneFileOrDir(std::ifstream& rifSource, const std::string& rstrOut, uint32_t dwBuffSize)
+int CFileUtil::DearchiveOneFileOrDir(std::ifstream& rifSource, const std::string& rstrOut, uint32_t ullBuffSize)
 {
     FileInfo stFileInfo;
     rifSource.read((char*)&stFileInfo, sizeof(FileInfo));
@@ -597,11 +597,11 @@ int CFileUtil::DearchiveOneFileOrDir(std::ifstream& rifSource, const std::string
 
             std::ofstream oFile(strResultPath, std::ofstream::out | std::ofstream::binary);
             std::cout << strResultPath << ", File state deachive " << oFile.is_open() << std::endl;
-            std::unique_ptr<char> pszBuff = std::unique_ptr<char>(new char[dwBuffSize]);
+            std::unique_ptr<char> pszBuff = std::unique_ptr<char>(new char[ullBuffSize]);
             char* szBuff = pszBuff.get();
-            if(stFileInfo.ullFSize > dwBuffSize)
+            if(stFileInfo.ullFSize > ullBuffSize)
             {
-                uint32_t dwNeedReadLoop = ceil(stFileInfo.ullFSize * 1.0 / dwBuffSize);
+                uint32_t dwNeedReadLoop = ceil(stFileInfo.ullFSize * 1.0 / ullBuffSize);
                 uint32_t dwCnt = dwNeedReadLoop;
                 std::cout << "loop:" << dwNeedReadLoop << std::endl;
                 while(dwCnt--)
@@ -609,12 +609,12 @@ int CFileUtil::DearchiveOneFileOrDir(std::ifstream& rifSource, const std::string
                     std::cout << "current loop:" << dwCnt << std::endl;
                     if(dwCnt != 1)
                     {
-                        rifSource.read(szBuff, dwBuffSize);
-                        oFile.write(szBuff, dwBuffSize);
+                        rifSource.read(szBuff, ullBuffSize);
+                        oFile.write(szBuff, ullBuffSize);
                     }
                     else
                     {
-                        uint32_t dwRestBytes = stFileInfo.ullFSize - (dwNeedReadLoop - 1) * dwBuffSize;
+                        uint32_t dwRestBytes = stFileInfo.ullFSize - (dwNeedReadLoop - 1) * ullBuffSize;
                         std::cout << "rest:" << dwRestBytes << std::endl;
                         rifSource.read(szBuff, dwRestBytes);
                         std::cout << "read finished" << std::endl;
