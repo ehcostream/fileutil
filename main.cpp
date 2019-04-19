@@ -213,35 +213,50 @@ int main(int argc, char** argv)
         break;
         case OT_COMPRESS_WITH_ENCODE:
         {
-            pstCompresser->Execute(boost::any_cast<std::vector<std::string>>(stParamMap[PKM_FC]), 
+            if(!bAsync)
+            {
+                pstCompresser->Execute(boost::any_cast<std::vector<std::string>>(stParamMap[PKM_FC]), 
                                    boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
                                    nullptr, 
                                    strOutFile);
-            std::vector<std::string> stvecFiles;
-            stvecFiles.emplace_back(strOutFile);
-            pstEncoder->Execute(stvecFiles, 
-                                boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
-                                nullptr, 
-                                strOutFile);
-
-            fs::remove(strOutFile);
+                std::string strTmpFile = strOutFile;
+                std::vector<std::string> stvecFiles;
+                stvecFiles.emplace_back(strOutFile);
+                pstEncoder->Execute(stvecFiles, 
+                                    boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
+                                    nullptr, 
+                                    strOutFile);
+                fs::remove(strTmpFile);
+            }
+            else
+            {
+                std::cout << "temporary unsupported" << std::endl;
+            }
         }
         break;
         case OT_DECODE_WITH_UNCOMPRESS:
         {
-            std::vector<std::string> stvecFiles;
-            stvecFiles.emplace_back(boost::any_cast<std::string>(stParamMap[PKM_FD]));
-            pstDecoder->Execute(stvecFiles, 
-                                boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
-                                nullptr, 
-                                strOutFile);
-            stvecFiles.clear();
-            stvecFiles.emplace_back(strOutFile);
-            pstUncompresser->Execute(stvecFiles, 
-                                boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
-                                nullptr, 
-                                strOutFile);
-            fs::remove(strOutFile);
+            if(!bAsync)
+            {
+                std::vector<std::string> stvecFiles;
+                stvecFiles.emplace_back(boost::any_cast<std::string>(stParamMap[PKM_FD]));
+                pstDecoder->Execute(stvecFiles, 
+                                    boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
+                                    nullptr, 
+                                    strOutFile);
+                std::string strTmpFile = strOutFile;
+                stvecFiles.clear();
+                stvecFiles.emplace_back(strOutFile);
+                pstUncompresser->Execute(stvecFiles, 
+                                    boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
+                                    nullptr, 
+                                    strOutFile);
+                fs::remove(strTmpFile);
+            }
+            else
+            {
+                std::cout << "temporary unsupported" << std::endl;
+            }
         }
         break;
         case OT_ENCODE:
