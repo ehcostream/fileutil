@@ -1,6 +1,6 @@
 #include "FileUtilBase.h"
 
-void CFileUtilBase::SetSysParam(uint32_t dwCpuCore, uint64_t ullBufferSize)
+void CFileUtilBase::Init(uint32_t dwCpuCore, uint64_t ullBufferSize)
 {
     m_dwCpuCore = dwCpuCore;
     m_ullBuffSize = ullBufferSize;

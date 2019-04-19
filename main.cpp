@@ -1,6 +1,6 @@
 #include "FileUtilGenerator.h"
 #include "FileUtilGeneratorAsync.h"
-
+#include "ThreadPool.h"
 namespace po = boost::program_options;
 
 typedef std::unordered_map<std::string, boost::any> PARAMMAP;
@@ -167,6 +167,7 @@ int main(int argc, char** argv)
 {
     std::string strEmptyFile;
     std::string strOutFile;
+    std::cout << "main thread" << "\t" << boost::this_thread::get_id() << std::endl;
 
     //获取命令行参数
     PARAMMAP stParamMap;
@@ -192,7 +193,7 @@ int main(int argc, char** argv)
     {
         case OT_COMPRESS:
         {
-            pstCompresser->SetSysParam(boost::any_cast<uint32_t>(stParamMap[PKM_CPU]),
+            pstCompresser->Init(boost::any_cast<uint32_t>(stParamMap[PKM_CPU]),
                                        boost::any_cast<uint64_t>(stParamMap[PKM_MB]));
             pstCompresser->Execute(boost::any_cast<std::vector<std::string>>(stParamMap[PKM_FC]), 
                                    boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
@@ -268,6 +269,7 @@ int main(int argc, char** argv)
             std::cout << "invalid arguments." << std::endl;
         break;
     }
-    sleep(1);
+    std::cout << "operation finished" << std::endl;
+    CThreadPool::Instance().JoinAll();
     return 0;
 }

@@ -28,6 +28,7 @@
 #include <zlib.h>
 #include "zio.cpp"
 #include "Version.h"
+#include "ThreadPool.h"
 namespace fs = boost::filesystem;
 
 //进行归档的文件的头部信息

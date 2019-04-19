@@ -1,6 +1,7 @@
 #pragma once
 #include "Singleton.h"
 #include "FileUtilGeneratorBase.h"
+
 class CFileUtilBase;
 
 class CFileUtilGeneratorAsync : public CFileUtilGeneratorBase , public CSingleton<CFileUtilGeneratorAsync>
@@ -20,6 +21,6 @@ public:
 	virtual CFileUtilBase* CreateDecoder(const std::string& rstrInFile);
 
 private:
-	CFileUtilGeneratorAsync() = default;
+	CFileUtilGeneratorAsync();
 	~CFileUtilGeneratorAsync() = default;
 };

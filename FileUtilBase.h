@@ -1,18 +1,20 @@
 #pragma once 
 #include "Zlibutil.h"
 
-typedef int (*Callback)();
 class CFileUtilBase
 {
 public:
-	CFileUtilBase() = default;
+	CFileUtilBase() 
+    {
+        Init(m_dwCpuCore, m_ullBuffSize);
+    }
 	virtual ~CFileUtilBase() = default;
 
 public:
 	virtual int 
 	Execute(const std::vector<std::string>& rvecFiles, const std::string& rstrOutDir, void* pExParam, std::string& rstrOutFile) = 0;
 
-    virtual void SetSysParam(uint32_t dwCpuCore, uint64_t ullBufferSize);
+    virtual void Init(uint32_t dwCpuCore, uint64_t ullBufferSize);
 
 protected:
 //常用的文件操作

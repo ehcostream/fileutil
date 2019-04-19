@@ -1,6 +1,14 @@
 #include "FileUtilGeneratorAsync.h"
 #define ASYNC
 #include "FileUtilities.h"
+#include "ThreadPool.h"
+static const uint32_t THREAD_CNT = 10;
+
+CFileUtilGeneratorAsync::CFileUtilGeneratorAsync()
+{
+	//初始化线程池
+	CThreadPool::Instance().Init(THREAD_CNT);
+}
 
 CFileUtilBase* CFileUtilGeneratorAsync::CreateCompresser()
 {
