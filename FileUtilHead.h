@@ -1,5 +1,6 @@
 #pragma once
-
+#include <ostream>
+#include <cstring>
 
 class FileHead;
 
@@ -18,10 +19,9 @@ public:
 public:
 	//返回明文key
 	static std::string Parse(std::istream& rstIn, int& nError);
-
 private:
 	//MD5(zlibutil_head_key)
-	static const std::string ENCODE_KEY = "4393d121109b3abf1c94d1bd749d9c05";
+	static const std::string ENCODE_KEY;
 
 private:
 	std::string m_strVersion;

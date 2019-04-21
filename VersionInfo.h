@@ -1,6 +1,6 @@
 #pragma once
-#include <ostream>
-
+#include <sstream>
+#include "Version.h"
 class CVersionInfo
 {
 public:
@@ -21,9 +21,9 @@ public:
 	static std::string String()
 	{
 		std::ostringstream oss;
-	    << m_dwMajorVer << "." 
-	    << m_dwMinorVer << "." 
-	    << m_dwPatchVer;
+	    oss << Version::MAJOR_VERSION << "." 
+	    << Version::MINOR_VERSION << "." 
+	    << Version::PATCH_VERSION;
 
 		return oss.str();
 	}

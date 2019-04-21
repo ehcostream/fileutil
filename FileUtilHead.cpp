@@ -1,6 +1,9 @@
-#include "FileUtilhead.h"
+#include <cassert>
+#include "FileUtilHead.h"
 #include "VersionInfo.h"
-#include "Md5.h"
+#include "MD5.h"
+
+const std::string CFileUtilHead::ENCODE_KEY = "4393d121109b3abf1c94d1bd749d9c05";
 
 struct FileHead
 {
@@ -53,18 +56,19 @@ int CFileUtilHead::Attach(std::ostream& rstOut, std::string rstrUserKey)
 	for(const auto c : rstrUserKey)
 	{
 		char szXor = ENCODE_KEY.at((dwPos++) % ENCODE_KEY.length());
-		strEncodeKey.append(szXor ^ (char)c);
+		char tC = szXor ^ (char)c;
+		strEncodeKey.append(&tC);
 	}
 	stHead.dwTimeStamp = time(nullptr);
 	strncpy(stHead.szKey, strEncodeKey.c_str(), strEncodeKey.length());
-	strncpy(stHead.szVersion, CVersionInfo::String().c_str(), VersionInfo::String().length());
+	strncpy(stHead.szVersion, CVersionInfo::String().c_str(), CVersionInfo::String().length());
 	std::ostringstream oss;
 	oss << CVersionInfo::String() << strEncodeKey << stHead.dwTimeStamp;
-	std::string strMd5Sign(Md5::Encode(oss.str()));
+	std::string strMd5Sign(MD5::Encode(oss.str()));
 	strncpy(stHead.szSign, strMd5Sign.c_str(), strMd5Sign.length());
 	//初始化stHead完成
 
-	rstOut.write(&stHead, sizeof(FileHead));
+	rstOut.write((char*)&stHead, sizeof(FileHead));
 	return 0;
 }
 
@@ -78,10 +82,10 @@ std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError)
 	do
 	{
 		FileHead stHead;
-		rstIn.read(&stHead, sizeof(FileHead));
+		rstIn.read((char*)&stHead, sizeof(FileHead));
 		std::ostringstream oss;
 		oss << std::string(stHead.szVersion) << std::string(stHead.szKey) << stHead.dwTimeStamp;
-		std::string strSign(Md5::Encode(oss.str()));
+		std::string strSign(MD5::Encode(oss.str()));
 		if(std::string(stHead.szSign) != strSign)
 		{
 			//文件无效
@@ -94,7 +98,8 @@ std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError)
 		for(const auto c : strEncodeKey)
 		{
 			char szXor = ENCODE_KEY.at((dwPos++) % ENCODE_KEY.length());
-			strRealKey.append(szXor ^ (char)c);
+			char tC = szXor ^ (char)c;
+			strRealKey.append(&tC);
 		}
 
 	}while(false);
