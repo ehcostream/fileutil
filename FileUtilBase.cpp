@@ -1,4 +1,5 @@
 #include "FileUtilBase.h"
+#include "FileUtilHead.h"
 
 void CFileUtilBase::Init(uint32_t dwCpuCore, uint64_t ullBufferSize)
 {
@@ -348,7 +349,9 @@ void CFileUtilBase::CombainFiles(const std::vector<std::string>& rVecInFiles, co
     std::unique_ptr< std::ofstream > ofsp;
     ofsp = std::unique_ptr< std::ofstream >(new strict_fstream::ofstream(rstrOutFile));
     osp = ofsp.get();
-
+    //附加头信息
+    CFileUtilHead::Attach(*osp, rstrOutFile);
+    
     for(const auto& file : rVecInFiles)
     {
         std::cout << "combain file : " << file << std::endl;

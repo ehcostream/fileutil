@@ -13,12 +13,12 @@ public:
 
 	void Init(const FileHead& rstHead);
 
-	//将头信息附加到文件头部,调用时机：在文件刚打开时调用，切记！！！
-	int Attach(std::ostream& rstOut, std::string strUserKey = std::string());
-
 public:
+	//将头信息附加到文件头部,调用时机：在文件刚打开时调用，切记！！！
+	static int Attach(std::ostream& rstOut, const std::string& rstrOutFile, std::string strUserKey = std::string());
+
 	//返回明文key
-	static std::string Parse(std::istream& rstIn, int& nError);
+	static std::string Parse(std::istream& rstIn, int& nError, std::string& rstrExt, std::string& rstrFilename);
 private:
 	//MD5(zlibutil_head_key)
 	static const std::string ENCODE_KEY;

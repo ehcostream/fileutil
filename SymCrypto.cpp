@@ -1,7 +1,7 @@
 #include "SymCrypto.h"
 
 
-int CSymCrypto::SymEncode(const std::string& rstrSource, const std::string& rstrOut, bool bEncode, std::string& rstrOutFile)
+int CSymCrypto::SymEncodeOld(const std::string& rstrSource, const std::string& rstrOut, const std::string& rstrKey, bool bEncode, std::string& rstrOutFile)
 {
 	//判断输出文件夹是否存在如果不存在，则创建
     fs::path filePath(rstrOut);
@@ -21,7 +21,7 @@ int CSymCrypto::SymEncode(const std::string& rstrSource, const std::string& rstr
             nError = 1;
             break;
         }
-        
+
         std::string strOutFile;
         EncodeHeaderInfo ehInfo;
         //首先读取加密文件头信息
@@ -90,6 +90,97 @@ int CSymCrypto::SymEncode(const std::string& rstrSource, const std::string& rstr
     {
         std::cout << (bEncode ? "encode" : "decode") << " file fail, error code: "  << nError << std::endl;
     }
+    in.close();
+    out.close();
+    return nError;
+}
+
+int CSymCrypto::SymEncode(const std::string& rstrSource, const std::string& rstrOut, const std::string& rstrKey, bool bEncode, std::string& rstrOutFile)
+{
+    //判断输出文件夹是否存在如果不存在，则创建
+    fs::path filePath(rstrOut);
+    if(!fs::exists(filePath))
+    {
+        fs::create_directories(filePath);
+    }
+    
+    std::ifstream in(rstrSource, std::ifstream::in | std::ifstream::binary);
+    std::ofstream out;
+    std::string strExtension(".spc");
+    int nError = 0;
+    do
+    {
+        if(!bEncode)
+        {
+            //如果是解密，首先解析头信息，取出真实密码并判断密码与文件本身使用的密码是否一致
+            //如果不一致，直接返回，密码错误
+            //如果一致，使用密码对文件内容进行解密
+            int nParseResult = 0;
+            std::string strExt;
+            std::string strFilename;
+            std::string strRealKey = CFileUtilHead::Parse(in, nParseResult, strExt, strFilename);
+            if(nParseResult != 0 || strExt != strExtension)
+            {
+                //文件格式无效
+                nError = 1;
+                break;
+            }
+            if(strRealKey != rstrKey)
+            {
+                //密码错误
+                nError = 2;
+                break;
+            }
+            rstrOutFile = (filePath / strFilename).string();
+        }
+        else
+        {
+            
+            int nParseResult = 0;
+            std::string strExt;
+            std::string strFilename;
+            std::string strRealKey = CFileUtilHead::Parse(in, nParseResult, strExt, strFilename);
+            if(strExt == strExtension)
+            {
+                //重复加密
+                nError = 3;
+                break;
+            }
+            else
+            {
+                //恢复文件指针
+                rstrOutFile = fs::path(rstrSource).filename().string();
+                rstrOutFile.append(strExt);
+                rstrOutFile = (filePath / rstrOutFile).string();
+                in.seekg(0, in.beg);
+            }
+
+        }
+
+        std::cout << "source:" << rstrSource << "out:" << rstrOutFile << std::endl;
+        out.open(rstrOutFile, std::ofstream::out | std::ofstream::trunc);
+        if(!out.is_open())
+        {
+            nError = 4;
+            break;
+        }
+        if(bEncode)
+        {
+            //附加文件头信息
+            CFileUtilHead::Attach(out, rstrOutFile, rstrKey);
+        }
+        uint64_t dwPos = 0;
+        char c;
+        //开始进行解密/解密
+        while(in.peek() != EOF)
+        {
+            char szXor = rstrKey.at((dwPos++) % rstrKey.length());
+            in.get(c);
+            char tC = szXor ^ (char)c;
+            out << tC;
+        }
+
+    }while(false);
     in.close();
     out.close();
     return nError;

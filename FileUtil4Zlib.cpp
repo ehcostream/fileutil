@@ -4,6 +4,21 @@ int CFileUtil4Zlib::Compress(const std::vector<std::string>& rvecFiles, const st
 {
     std::cout << "Compress" << std::endl;
     assert(rvecFiles.size() > 0);
+    
+    if(fs::is_regular_file(rvecFiles.front()) && rvecFiles.size() == 1)
+    {
+        int nParseResult = 0;
+        std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(rvecFiles.front()));
+        std::istream * isp = ifsp.get();
+        std::string strEx;
+        std::string strFname;
+        CFileUtilHead::Parse(*isp, nParseResult, strEx, strFname);
+        if(strEx == std::string(".zb"))
+        {
+            //重复压缩
+            return 1;
+        }
+    }
     //归档
     std::string strMidFile;
     GetTmpMiddleFile(strMidFile, true);
@@ -64,6 +79,9 @@ int CFileUtil4Zlib::Compress(const std::vector<std::string>& rvecFiles, const st
 
         ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(strMidFile));
         isp = ifsp.get();
+
+        //附加文件头信息
+        CFileUtilHead::Attach(*osp, outFilePath.string());
         CatStream(*isp, *osp);
 
         //删除临时文件
@@ -84,14 +102,33 @@ int CFileUtil4Zlib::Uncompress(const std::string& rstrIn, const std::string& rst
     ofsp = std::unique_ptr< std::ofstream >(new strict_fstream::ofstream(strMidFile));
     osp = ofsp.get();
     std::unique_ptr< std::istream > isp = std::unique_ptr< std::istream >(new zio::ifstream(rstrIn, m_ullBuffSize));
-    CatStream(*isp, *osp);
 
-    //解档
-    Dearchive(strMidFile, rstrOutDir);
+    std::string strExt;
+    std::string strFilename;
+    int nError = 0;
+    do
+    {
+        //检测文件是否有效
+        CFileUtilHead::Parse(*isp, nError, strExt, strFilename);
+        if(nError != 0)
+        {
+            nError = 1;
+            break;
+        }
+        if(strExt != std::string(".zb"))
+        {
+            nError = 2;
+            break;
+        }
+
+        CatStream(*isp, *osp);
+        //解档
+        Dearchive(strMidFile, rstrOutDir);
+    }while(false);
 
     //删除临时文件
     fs::remove(fs::path(strMidFile));
-	return 0;
+	return nError;
 }
 
 int CFileUtil4Zlib::CompressWithMT(const std::string rstrAchiveFile, const std::string& rstrOutDir)

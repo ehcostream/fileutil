@@ -25,6 +25,7 @@ static const std::string PKM_FD = "file_decode";
 static const std::string PKM_CPU = "cpu_cores";
 static const std::string PKM_MB = "max_buffer";
 static const std::string PKM_OUT = "out_file";
+static const std::string PKM_KEY = "encode_key";
 static const std::string PKM_ASYNC = "async";
 
 //参数检查&获取当前操作类型
@@ -106,6 +107,7 @@ OperationType GetCommandParam(int argc, char** argv, PARAMMAP& rParamMap, bool& 
                 ("file_decode,d", po::value<std::string>(), "file need to be decoded")
                 ("cpu_cores,C", po::value<uint32_t>(&dwCpuCore)->default_value(1), "cpu cores")
                 ("max_buffer,B", po::value<uint64_t>(&ullMaxBuffSize)->default_value(1<<20), "max buffer size")
+                ("key,k", po::value<std::string>(), "key for encoding")
                 ("out_file,o", po::value<std::string>(&strOut)->default_value(std::string(".")),"output files")
             ;
             po::store(po::parse_command_line(argc, argv, ops), vm);
@@ -149,6 +151,10 @@ OperationType GetCommandParam(int argc, char** argv, PARAMMAP& rParamMap, bool& 
             {
                 rParamMap[PKM_OUT] = vm[PKM_OUT].as<std::string>();
             }
+            if(vm.count(PKM_KEY))
+            {
+                rParamMap[PKM_KEY] = vm[PKM_KEY].as<std::string>();
+            }
             if (vm.count(PKM_ASYNC)) 
             {
                 rnAsync = true;
@@ -188,14 +194,14 @@ int main(int argc, char** argv)
     std::unique_ptr<CFileUtilBase> pstDecoder = std::unique_ptr<CFileUtilBase>(pstBase->CreateDecoder(strEmptyFile));
 
     std::cout << "in operation..." << std::endl;
-    
+    int nError = 0;
     switch(ot)
     {
         case OT_COMPRESS:
         {
             pstCompresser->Init(boost::any_cast<uint32_t>(stParamMap[PKM_CPU]),
                                        boost::any_cast<uint64_t>(stParamMap[PKM_MB]));
-            pstCompresser->Execute(boost::any_cast<std::vector<std::string>>(stParamMap[PKM_FC]), 
+            nError = pstCompresser->Execute(boost::any_cast<std::vector<std::string>>(stParamMap[PKM_FC]), 
                                    boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
                                    nullptr, 
                                    strOutFile);
@@ -205,7 +211,7 @@ int main(int argc, char** argv)
         {
             std::vector<std::string> stvecFiles;
             stvecFiles.emplace_back(boost::any_cast<std::string>(stParamMap[PKM_FU]));
-            pstUncompresser->Execute(stvecFiles,
+            nError = pstUncompresser->Execute(stvecFiles,
                                      boost::any_cast<std::string>(stParamMap[PKM_OUT]),
                                      nullptr,
                                      strOutFile);
@@ -215,16 +221,16 @@ int main(int argc, char** argv)
         {
             if(!bAsync)
             {
-                pstCompresser->Execute(boost::any_cast<std::vector<std::string>>(stParamMap[PKM_FC]), 
+                nError = pstCompresser->Execute(boost::any_cast<std::vector<std::string>>(stParamMap[PKM_FC]), 
                                    boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
                                    nullptr, 
                                    strOutFile);
                 std::string strTmpFile = strOutFile;
                 std::vector<std::string> stvecFiles;
                 stvecFiles.emplace_back(strOutFile);
-                pstEncoder->Execute(stvecFiles, 
+                nError = pstEncoder->Execute(stvecFiles, 
                                     boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
-                                    nullptr, 
+                                    (char*)boost::any_cast<std::string>(stParamMap[PKM_KEY]).c_str(), 
                                     strOutFile);
                 fs::remove(strTmpFile);
             }
@@ -240,10 +246,15 @@ int main(int argc, char** argv)
             {
                 std::vector<std::string> stvecFiles;
                 stvecFiles.emplace_back(boost::any_cast<std::string>(stParamMap[PKM_FD]));
-                pstDecoder->Execute(stvecFiles, 
+                int nError = pstDecoder->Execute(stvecFiles, 
                                     boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
-                                    nullptr, 
+                                    (char*)boost::any_cast<std::string>(stParamMap[PKM_KEY]).c_str(), 
                                     strOutFile);
+                if(nError != 0)
+                {
+                    std::cout << "decode failed, error code: " << nError << std::endl;
+                    return 0 ;
+                }
                 std::string strTmpFile = strOutFile;
                 stvecFiles.clear();
                 stvecFiles.emplace_back(strOutFile);
@@ -263,9 +274,9 @@ int main(int argc, char** argv)
         {
             std::vector<std::string> stvecFiles;
             stvecFiles.emplace_back(boost::any_cast<std::string>(stParamMap[PKM_FE]));
-            pstEncoder->Execute(stvecFiles, 
+            nError = pstEncoder->Execute(stvecFiles, 
                                 boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
-                                nullptr, 
+                                (char*)boost::any_cast<std::string>(stParamMap[PKM_KEY]).c_str(), 
                                 strOutFile);
         }
         break;
@@ -273,10 +284,15 @@ int main(int argc, char** argv)
         {
             std::vector<std::string> stvecFiles;
             stvecFiles.emplace_back(boost::any_cast<std::string>(stParamMap[PKM_FD]));
-            pstDecoder->Execute(stvecFiles, 
+            int nError = pstDecoder->Execute(stvecFiles, 
                                 boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
-                                nullptr, 
+                                (char*)boost::any_cast<std::string>(stParamMap[PKM_KEY]).c_str(), 
                                 strOutFile);
+            if(nError != 0)
+            {
+                std::cout << "decode failed, error code: " << nError << std::endl;
+                return 0 ;
+            }
         }
         break;
         case OT_UNKNOW:
@@ -284,7 +300,15 @@ int main(int argc, char** argv)
             std::cout << "invalid arguments." << std::endl;
         break;
     }
-    std::cout << "operation finished" << std::endl;
+    if(nError != 0)
+    {
+        std::cout << "operation failed, error code: " << nError << std::endl;
+    }
+    else
+    {
+        std::cout << "operation finished" << std::endl;    
+    }
+    
     CThreadPool::Instance().JoinAll();
     return 0;
 }
