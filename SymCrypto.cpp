@@ -98,6 +98,7 @@ int CSymCrypto::SymEncodeOld(const std::string& rstrSource, const std::string& r
 int CSymCrypto::SymEncode(const std::string& rstrSource, const std::string& rstrOut, const std::string& rstrKey, bool bEncode, std::string& rstrOutFile)
 {
     //判断输出文件夹是否存在如果不存在，则创建
+    std::cout << __FILE__ << " " << __FUNCTION__ << " " << rstrKey << std::endl;
     fs::path filePath(rstrOut);
     if(!fs::exists(filePath))
     {
@@ -125,6 +126,16 @@ int CSymCrypto::SymEncode(const std::string& rstrSource, const std::string& rstr
                 nError = 1;
                 break;
             }
+            std::cout << strRealKey << "<= =>" << rstrKey << std::endl;
+            for(const auto c : strRealKey)
+            {
+                std::cout << (int)c << std::endl;
+            }
+
+            for(const auto c : rstrKey)
+            {
+                std::cout << (int)c << std::endl;
+            }
             if(strRealKey != rstrKey)
             {
                 //密码错误
@@ -150,7 +161,7 @@ int CSymCrypto::SymEncode(const std::string& rstrSource, const std::string& rstr
             {
                 //恢复文件指针
                 rstrOutFile = fs::path(rstrSource).filename().string();
-                rstrOutFile.append(strExt);
+                rstrOutFile.append(strExtension);
                 rstrOutFile = (filePath / rstrOutFile).string();
                 in.seekg(0, in.beg);
             }

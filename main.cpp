@@ -107,7 +107,7 @@ OperationType GetCommandParam(int argc, char** argv, PARAMMAP& rParamMap, bool& 
                 ("file_decode,d", po::value<std::string>(), "file need to be decoded")
                 ("cpu_cores,C", po::value<uint32_t>(&dwCpuCore)->default_value(1), "cpu cores")
                 ("max_buffer,B", po::value<uint64_t>(&ullMaxBuffSize)->default_value(1<<20), "max buffer size")
-                ("key,k", po::value<std::string>(), "key for encoding")
+                ("encode_key,k", po::value<std::string>(), "key for encoding")
                 ("out_file,o", po::value<std::string>(&strOut)->default_value(std::string(".")),"output files")
             ;
             po::store(po::parse_command_line(argc, argv, ops), vm);
@@ -154,6 +154,13 @@ OperationType GetCommandParam(int argc, char** argv, PARAMMAP& rParamMap, bool& 
             if(vm.count(PKM_KEY))
             {
                 rParamMap[PKM_KEY] = vm[PKM_KEY].as<std::string>();
+            }
+            else
+            {
+                if(nEncode > -1)
+                {
+                    return OT_UNKNOW;
+                }
             }
             if (vm.count(PKM_ASYNC)) 
             {
@@ -273,6 +280,7 @@ int main(int argc, char** argv)
         case OT_ENCODE:
         {
             std::vector<std::string> stvecFiles;
+            std::cout << boost::any_cast<std::string>(stParamMap[PKM_KEY]) << std::endl;
             stvecFiles.emplace_back(boost::any_cast<std::string>(stParamMap[PKM_FE]));
             nError = pstEncoder->Execute(stvecFiles, 
                                 boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
@@ -283,6 +291,7 @@ int main(int argc, char** argv)
         case OT_DECODE:
         {
             std::vector<std::string> stvecFiles;
+            std::cout << boost::any_cast<std::string>(stParamMap[PKM_KEY]) << std::endl;
             stvecFiles.emplace_back(boost::any_cast<std::string>(stParamMap[PKM_FD]));
             int nError = pstDecoder->Execute(stvecFiles, 
                                 boost::any_cast<std::string>(stParamMap[PKM_OUT]), 

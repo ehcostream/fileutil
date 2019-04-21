@@ -11,17 +11,17 @@ namespace fs = boost::filesystem;
 struct FileHead
 {
 	//版本信息 eg.1.2.33
-	char szVersion[32];
-	//32位密钥(密文)
-	char szKey[32];
+	char szVersion[32+1];
+	//私钥(密文)不能超过32位
+	char szKey[32+1];
 	//签名信息
-	char szSign[32];
+	char szSign[32+1];
 	//时间戳
 	uint32_t dwTimeStamp;
-	//后缀名
-	char szExt[20];
+	//后缀名不能20位
+	char szExt[20+1];
 	//文件名
-	char szFilename[255];
+	char szFilename[256+1];
 };
 
 CFileUtilHead::CFileUtilHead()
@@ -55,10 +55,11 @@ int CFileUtilHead::Attach(std::ostream& rstOut, const std::string& rstrOutFile, 
 {
 	std::cout << __FILE__ << "\t" << __FUNCTION__ << std::endl;
 	//只支持32字节以内的字符
-	assert(rstrUserKey.length() <= 32);
+	FileHead stHead;
+	assert(rstrUserKey.length() <= sizeof(stHead.szKey));
 	fs::path path(rstrOutFile);
 
-	FileHead stHead;
+	
 	memset(&stHead, '\0', sizeof(stHead));
 	uint32_t dwPos = 0;
 	std::string strEncodeKey;
@@ -67,7 +68,9 @@ int CFileUtilHead::Attach(std::ostream& rstOut, const std::string& rstrOutFile, 
 		char szXor = ENCODE_KEY.at((dwPos++) % ENCODE_KEY.length());
 		char tC = szXor ^ (char)c;
 		strEncodeKey.append(&tC);
+		std::cout << "xor:" << (int)szXor << ",c:" << (int)c << ",result:" << (int)tC << std::endl;
 	}
+	std::cout << "encode size:" << dwPos << std::endl;
 	stHead.dwTimeStamp = time(nullptr);
 	strncpy(stHead.szKey, strEncodeKey.c_str(), strEncodeKey.length());
 	strncpy(stHead.szVersion, CVersionInfo::String().c_str(), CVersionInfo::String().length());
@@ -78,14 +81,32 @@ int CFileUtilHead::Attach(std::ostream& rstOut, const std::string& rstrOutFile, 
 	//获取文件名称和后缀名称
 	strncpy(stHead.szFilename, path.stem().string().c_str(), path.stem().string().length());
 	strncpy(stHead.szExt, path.extension().string().c_str(), path.extension().string().length());
+	stHead.szKey[strEncodeKey.length()] = '\0';
+	stHead.szFilename[path.stem().string().length()] = '\0';
+	stHead.szExt[path.extension().string().length()] = '\0';
+	stHead.szSign[strMd5Sign.length()] = '\0';
+	stHead.szVersion[CVersionInfo::String().length()] = '\0';
+
 	//初始化stHead完成
 
-	std::cout << "Attach--->\n" << std::string(stHead.szVersion) << " "
-		          << std::string(stHead.szKey) << " "
+	std::cout << "Attach Before--->\n" << std::string(stHead.szVersion) << " ->"
+		          << strEncodeKey << "<- "
+		          << stHead.dwTimeStamp << " "
+		          << path.extension().string() << " "
+		          << path.stem().string() << " "
+		          << strMd5Sign << std::endl;
+
+	std::cout << "Attach After--->\n" << std::string(stHead.szVersion) << " ->"
+		          << std::string(stHead.szKey) << "<- "
 		          << stHead.dwTimeStamp << " "
 		          << std::string(stHead.szExt) << " "
-		          << std::string(stHead.szFilename) << ""
+		          << std::string(stHead.szFilename) << " "
 		          << std::string(stHead.szSign) << std::endl;
+
+	for(const auto c : strEncodeKey)
+	{
+		std::cout << (int)c << std::endl;
+	}
 
 	rstOut.write((char*)&stHead, sizeof(FileHead));
 	return 0;
@@ -109,7 +130,7 @@ std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError,  std::string&
 		          << std::string(stHead.szKey) << " "
 		          << stHead.dwTimeStamp << " "
 		          << std::string(stHead.szExt) << " "
-		          << std::string(stHead.szFilename) << ""
+		          << std::string(stHead.szFilename) << " "
 		          << std::string(stHead.szSign) << std::endl;
 
 		std::string strSign(MD5::Encode(oss.str()));
@@ -119,7 +140,12 @@ std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError,  std::string&
 			nError = 1;
 			break;
 		}
-		std::string strEncodeKey(stHead.szKey);
+		std::string strEncodeKey(stHead.szKey, 5);
+		std::cout << "encodekeysource:" << strEncodeKey << ",encodekey length:" << strEncodeKey.length() << std::endl;
+		for(const auto c : strEncodeKey)
+		{
+			std::cout << (int)c << std::endl;
+		}
 
 		uint32_t dwPos = 0;
 		for(const auto c : strEncodeKey)
@@ -127,7 +153,9 @@ std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError,  std::string&
 			char szXor = ENCODE_KEY.at((dwPos++) % ENCODE_KEY.length());
 			char tC = szXor ^ (char)c;
 			strRealKey.append(&tC);
+			std::cout << "xor:" << (int)szXor << ",c:" << (int)c << ",result:" << (int)tC << std::endl;
 		}
+		std::cout << "parse size:" << dwPos << std::endl;
 
 		rstrExt = std::string(stHead.szExt);
 		rstrFilename = std::string(stHead.szFilename);
