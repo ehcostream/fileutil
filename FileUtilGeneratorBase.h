@@ -3,8 +3,7 @@
 
 #include "Uncopyable.h"
 #include "FileUtilGeneratorInterface.h"
-
-class CVersionInfo;
+#include "VersionInfo.h"
 
 class CFileUtilGeneratorBase 
 	: public CUncopyable, 

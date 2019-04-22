@@ -10,13 +10,36 @@ public:
 		 m_dwPatchVer(dwPatchVer) {}
 
 	~CVersionInfo() = default;
-	CVersionInfo& operator= (const CVersionInfo&) = default;
-	CVersionInfo(const CVersionInfo&) = default;
+	CVersionInfo& operator= (const CVersionInfo& version)
+	{
+		if(this != &version)
+		{
+			m_dwMajorVer = version.m_dwMajorVer;
+			m_dwMinorVer = version.m_dwMinorVer;
+			m_dwPatchVer = version.m_dwPatchVer;
+		}
+		return *this;
+	}
+	
+	CVersionInfo(const CVersionInfo& version)
+	{
+		m_dwMajorVer = version.m_dwMajorVer;
+		m_dwMinorVer = version.m_dwMinorVer;
+		m_dwPatchVer = version.m_dwPatchVer;
+	}
 
 	uint32_t GetMajorVer() { return m_dwMajorVer; }
 	uint32_t GetMinorVer() { return m_dwMinorVer; }
 	uint32_t GetPatchVer() { return m_dwPatchVer; }
 
+	std::string Print()
+	{
+		std::ostringstream oss;
+	    oss << m_dwMajorVer << "." 
+	    << m_dwMinorVer << "." 
+	    << m_dwPatchVer;
+		return oss.str();
+	}
 
 	static std::string String()
 	{

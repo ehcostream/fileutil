@@ -1,28 +1,15 @@
 #include <cassert>
+#include <memory>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include "FileUtilHead.h"
 #include "VersionInfo.h"
 #include "MD5.h"
+#include "strict_fstream.cpp"
 
 const std::string CFileUtilHead::ENCODE_KEY = "4393d121109b3abf1c94d1bd749d9c05";
 namespace fs = boost::filesystem;
 
-struct FileHead
-{
-	//版本信息 eg.1.2.33
-	char szVersion[32+1];
-	//私钥不能超过32位
-	char szKey[32+1];
-	//签名信息
-	char szSign[32+1];
-	//时间戳
-	uint32_t dwTimeStamp;
-	//后缀名不能20位
-	char szExt[20+1];
-	//文件名
-	char szFilename[256+1];
-};
 
 CFileUtilHead::CFileUtilHead()
 {
@@ -107,7 +94,7 @@ int CFileUtilHead::Attach(std::ostream& rstOut, const std::string& rstrOutFile, 
 	return 0;
 }
 
-std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError,  std::string& rstrExt, std::string& rstrFilename)
+std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError, FileHead& rstHead)
 {
 	//读取FileHead
 	//判断是否有效
@@ -117,19 +104,18 @@ std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError,  std::string&
 	std::string strRealKey;
 	do
 	{
-		FileHead stHead;
-		rstIn.read((char*)&stHead, sizeof(FileHead));
+		rstIn.read((char*)&rstHead, sizeof(FileHead));
 		std::ostringstream oss;
-		oss << std::string(stHead.szVersion) << std::string(stHead.szKey) << stHead.dwTimeStamp << std::string(stHead.szExt) << std::string(stHead.szFilename);
+		oss << std::string(rstHead.szVersion) << std::string(rstHead.szKey) << rstHead.dwTimeStamp << std::string(rstHead.szExt) << std::string(rstHead.szFilename);
 
 		std::string strSign(MD5::Encode(oss.str()));
-		if(std::string(stHead.szSign) != strSign)
+		if(std::string(rstHead.szSign) != strSign)
 		{
 			//文件无效
 			nError = 1;
 			break;
 		}
-		std::string strEncodeKey(stHead.szKey);
+		std::string strEncodeKey(rstHead.szKey);
 		std::cout << "encodekeysource:" << strEncodeKey << ",encodekey length:" << strEncodeKey.length() << std::endl;
 
 		uint32_t dwPos = 0;
@@ -141,12 +127,27 @@ std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError,  std::string&
 			std::cout << "xor:" << (int)szXor << ",c:" << (int)c << ",result:" << (int)tC << std::endl;
 		}
 		std::cout << "parse size:" << dwPos << std::endl;
-
-		rstrExt = std::string(stHead.szExt);
-		rstrFilename = std::string(stHead.szFilename);
-
 	}while(false);
 	std::cout << __FILE__ << "\t" << __FUNCTION__ << "\t" << nError << std::endl;
 
 	return strRealKey;
+}
+
+int CFileUtilHead::GetData(const std::string& rstrFile, FileHead& rstHead)
+{
+	std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(rstrFile));
+	std::istream * isp = ifsp.get();
+	(*isp).read((char*)&rstHead, sizeof(FileHead));
+	std::ostringstream oss;
+	oss << std::string(rstHead.szVersion) << std::string(rstHead.szKey) << rstHead.dwTimeStamp << std::string(rstHead.szExt) << std::string(rstHead.szFilename);
+
+	std::string strSign(MD5::Encode(oss.str()));
+	if(std::string(rstHead.szSign) != strSign)
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
 }

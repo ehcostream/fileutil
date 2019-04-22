@@ -117,10 +117,9 @@ int CSymCrypto::SymEncode(const std::string& rstrSource, const std::string& rstr
             //如果不一致，直接返回，密码错误
             //如果一致，使用密码对文件内容进行解密
             int nParseResult = 0;
-            std::string strExt;
-            std::string strFilename;
-            std::string strRealKey = CFileUtilHead::Parse(in, nParseResult, strExt, strFilename);
-            if(nParseResult != 0 || strExt != strExtension)
+            FileHead stHead;
+            std::string strRealKey = CFileUtilHead::Parse(in, nParseResult, stHead);
+            if(nParseResult != 0 || std::string(stHead.szExt) != strExtension)
             {
                 //文件格式无效
                 nError = 1;
@@ -133,16 +132,15 @@ int CSymCrypto::SymEncode(const std::string& rstrSource, const std::string& rstr
                 nError = 2;
                 break;
             }
-            rstrOutFile = (filePath / strFilename).string();
+            rstrOutFile = (filePath / std::string(stHead.szFilename)).string();
         }
         else
         {
             
             int nParseResult = 0;
-            std::string strExt;
-            std::string strFilename;
-            std::string strRealKey = CFileUtilHead::Parse(in, nParseResult, strExt, strFilename);
-            if(strExt == strExtension)
+            FileHead stHead;
+            std::string strRealKey = CFileUtilHead::Parse(in, nParseResult, stHead);
+            if(std::string(stHead.szExt) == strExtension)
             {
                 //重复加密
                 nError = 3;

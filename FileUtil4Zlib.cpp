@@ -10,10 +10,9 @@ int CFileUtil4Zlib::Compress(const std::vector<std::string>& rvecFiles, const st
         int nParseResult = 0;
         std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(rvecFiles.front()));
         std::istream * isp = ifsp.get();
-        std::string strEx;
-        std::string strFname;
-        CFileUtilHead::Parse(*isp, nParseResult, strEx, strFname);
-        if(strEx == std::string(".zb"))
+        FileHead stHead;
+        CFileUtilHead::Parse(*isp, nParseResult, stHead);
+        if(std::string(stHead.szExt) == std::string(".zb"))
         {
             //重复压缩
             return 1;
@@ -103,19 +102,18 @@ int CFileUtil4Zlib::Uncompress(const std::string& rstrIn, const std::string& rst
     osp = ofsp.get();
     std::unique_ptr< std::istream > isp = std::unique_ptr< std::istream >(new zio::ifstream(rstrIn, m_ullBuffSize));
 
-    std::string strExt;
-    std::string strFilename;
+    FileHead stHead;
     int nError = 0;
     do
     {
         //检测文件是否有效
-        CFileUtilHead::Parse(*isp, nError, strExt, strFilename);
+        CFileUtilHead::Parse(*isp, nError, stHead);
         if(nError != 0)
         {
             nError = 1;
             break;
         }
-        if(strExt != std::string(".zb"))
+        if(std::string(stHead.szExt) != std::string(".zb"))
         {
             nError = 2;
             break;

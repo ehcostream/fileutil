@@ -13,8 +13,22 @@ CFileUtilBase* CFileUtilGenerator::CreateCompresser()
 //创建解压工具
 CFileUtilBase* CFileUtilGenerator::CreateUncompresser(const std::string& rstrInFile)
 {
-	//TODO 兼容旧版本创建的文件
-	return new CFileUncompresser();
+	//兼容模式
+	CVersionInfo stVersionInfo(GetFileUtilVer(rstrInFile));
+	std::cout << stVersionInfo.Print() << std::endl;
+	if(stVersionInfo.GetMinorVer() == Version::MINOR_VERSION)
+	{
+		//使用当前最新的
+		return new CFileUncompresser();
+	}
+	else if(stVersionInfo.GetMinorVer() == 50)
+	{
+		return nullptr;/*new version*/
+	}
+	else
+	{
+		return nullptr;
+	}
 }
 
 //创建加密工具
@@ -26,20 +40,20 @@ CFileUtilBase* CFileUtilGenerator::CreateEncoder()
 //创建解密工具
 CFileUtilBase* CFileUtilGenerator::CreateDecoder(const std::string& rstrInFile)
 {
-	//兼容模式TODO
-	// CVersionInfo& rstVersionInfo = GetFileUtilVer(rstrInFile);
-	// if(rstVersionInfo.GetMiniorVer() == Version::MINOR_VERSION)
-	// {
-	// 	//使用当前最新的
-	// 	return new CFileDecoder();
-	// }
-	// else if(rstVersionInfo.GetMiniorVer() == 50)
-	// {
-	// 	return new CFileDecoderOld();
-	// }
-	// else
-	// {
-	// 	return nullptr;
-	// }
-	return new CFileDecoder();
+	//兼容模式
+	CVersionInfo stVersionInfo(GetFileUtilVer(rstrInFile));
+	std::cout << stVersionInfo.Print() << std::endl;
+	if(stVersionInfo.GetMinorVer() == Version::MINOR_VERSION)
+	{
+		//使用当前最新的
+		return new CFileDecoder();
+	}
+	else if(stVersionInfo.GetMinorVer() == 50)
+	{
+		return nullptr;/*new version*/
+	}
+	else
+	{
+		return nullptr;
+	}
 }

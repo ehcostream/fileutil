@@ -1,6 +1,7 @@
 #include "FileUtilGeneratorBase.h"
-#include "Version.h"
-#include "VersionInfo.h"
+#include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
+#include "FileUtilHead.h"
 
 CFileUtilBase* CFileUtilGeneratorBase::CreateCompresser()
 { 
@@ -28,5 +29,28 @@ CFileUtilBase* CFileUtilGeneratorBase::CreateDecoder(const std::string& rstrInFi
 CVersionInfo CFileUtilGeneratorBase::GetFileUtilVer(const std::string& rstrFile)
 {
 	//TODO读取文件头信息
-	return CVersionInfo(Version::MAJOR_VERSION, Version::MINOR_VERSION, Version::PATCH_VERSION);
+	FileHead stHead;
+	int nError = CFileUtilHead::GetData(rstrFile, stHead);
+	if(nError != 0)
+	{
+		return CVersionInfo(0,0,0);
+	}
+	else
+	{
+		std::string strVersion(stHead.szVersion);
+		std::vector<std::string> stResult;
+		boost::split(stResult, strVersion, boost::is_any_of("-."));
+		if(stResult.size() == 3)
+		{
+			return CVersionInfo(
+				boost::lexical_cast<uint32_t>(stResult[0]), 
+				boost::lexical_cast<uint32_t>(stResult[1]), 
+				boost::lexical_cast<uint32_t>(stResult[2]));
+		}
+		else
+		{
+			return CVersionInfo(0,0,0);
+		}
+		
+	}
 }
