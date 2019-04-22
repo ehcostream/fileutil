@@ -21,6 +21,9 @@ public:
 	virtual CFileUtilBase* CreateDecoder(const std::string& rstrInFile);
 
 private:
+	int GetCpuCoresAvaiable();
+
+private:
 	CFileUtilGeneratorAsync();
 	~CFileUtilGeneratorAsync() = default;
 };
