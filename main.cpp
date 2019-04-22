@@ -1,6 +1,7 @@
 #include "FileUtilGenerator.h"
 #include "FileUtilGeneratorAsync.h"
 #include "ThreadPool.h"
+#include "VersionInfo.h"
 namespace po = boost::program_options;
 
 typedef std::unordered_map<std::string, boost::any> PARAMMAP;
@@ -189,6 +190,7 @@ int main(int argc, char** argv)
 
     CFileUtilGeneratorBase* pstBase = nullptr;
     std::cout << "mode:" << bAsync << std::endl;
+    std::cout << "version:" << CVersionInfo::String() << std::endl;
     if(bAsync)
         pstBase = &CFileUtilGeneratorAsync::Instance();
     else

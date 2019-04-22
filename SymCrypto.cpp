@@ -127,15 +127,6 @@ int CSymCrypto::SymEncode(const std::string& rstrSource, const std::string& rstr
                 break;
             }
             std::cout << strRealKey << "<= =>" << rstrKey << std::endl;
-            for(const auto c : strRealKey)
-            {
-                std::cout << (int)c << std::endl;
-            }
-
-            for(const auto c : rstrKey)
-            {
-                std::cout << (int)c << std::endl;
-            }
             if(strRealKey != rstrKey)
             {
                 //密码错误

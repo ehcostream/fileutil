@@ -121,11 +121,16 @@ cmake . & make
 
 加密
 ```
-./bin/fz -e compressed_filename -o directory
+./bin/fz -e compressed_filename -o directory -k password
 ```
 
 解密
 ```
-./bin/fz -d encoded_filename -o directory
+./bin/fz -d encoded_filename -o directory -k password
+```
+
+异步模式(只支持压缩/解压或者加密/解密)
+```
+./bin/fz --async
 ```
 #zlibutil
