@@ -307,6 +307,7 @@ int main(int argc, char** argv)
         case OT_UNKNOW:
         default:
             std::cout << "invalid arguments." << std::endl;
+            nError = 99;
         break;
     }
     if(nError != 0)

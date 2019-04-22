@@ -12,7 +12,7 @@ struct FileHead
 {
 	//版本信息 eg.1.2.33
 	char szVersion[32+1];
-	//私钥(密文)不能超过32位
+	//私钥不能超过32位
 	char szKey[32+1];
 	//签名信息
 	char szSign[32+1];
@@ -67,7 +67,7 @@ int CFileUtilHead::Attach(std::ostream& rstOut, const std::string& rstrOutFile, 
 	{
 		char szXor = ENCODE_KEY.at((dwPos++) % ENCODE_KEY.length());
 		char tC = szXor ^ (char)c;
-		strEncodeKey.append(&tC);
+		strEncodeKey.append(&tC, 1);
 		std::cout << "xor:" << (int)szXor << ",c:" << (int)c << ",result:" << (int)tC << std::endl;
 	}
 	std::cout << "encode size:" << dwPos << std::endl;
@@ -103,11 +103,6 @@ int CFileUtilHead::Attach(std::ostream& rstOut, const std::string& rstrOutFile, 
 		          << std::string(stHead.szFilename) << " "
 		          << std::string(stHead.szSign) << std::endl;
 
-	for(const auto c : strEncodeKey)
-	{
-		std::cout << (int)c << std::endl;
-	}
-
 	rstOut.write((char*)&stHead, sizeof(FileHead));
 	return 0;
 }
@@ -126,12 +121,6 @@ std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError,  std::string&
 		rstIn.read((char*)&stHead, sizeof(FileHead));
 		std::ostringstream oss;
 		oss << std::string(stHead.szVersion) << std::string(stHead.szKey) << stHead.dwTimeStamp << std::string(stHead.szExt) << std::string(stHead.szFilename);
-		std::cout << "Parse--->\n" << std::string(stHead.szVersion) << " "
-		          << std::string(stHead.szKey) << " "
-		          << stHead.dwTimeStamp << " "
-		          << std::string(stHead.szExt) << " "
-		          << std::string(stHead.szFilename) << " "
-		          << std::string(stHead.szSign) << std::endl;
 
 		std::string strSign(MD5::Encode(oss.str()));
 		if(std::string(stHead.szSign) != strSign)
@@ -140,19 +129,15 @@ std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError,  std::string&
 			nError = 1;
 			break;
 		}
-		std::string strEncodeKey(stHead.szKey, 5);
+		std::string strEncodeKey(stHead.szKey);
 		std::cout << "encodekeysource:" << strEncodeKey << ",encodekey length:" << strEncodeKey.length() << std::endl;
-		for(const auto c : strEncodeKey)
-		{
-			std::cout << (int)c << std::endl;
-		}
 
 		uint32_t dwPos = 0;
 		for(const auto c : strEncodeKey)
 		{
 			char szXor = ENCODE_KEY.at((dwPos++) % ENCODE_KEY.length());
 			char tC = szXor ^ (char)c;
-			strRealKey.append(&tC);
+			strRealKey.append(&tC, 1);
 			std::cout << "xor:" << (int)szXor << ",c:" << (int)c << ",result:" << (int)tC << std::endl;
 		}
 		std::cout << "parse size:" << dwPos << std::endl;
