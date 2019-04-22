@@ -5,7 +5,6 @@
 namespace po = boost::program_options;
 
 typedef std::unordered_map<std::string, boost::any> PARAMMAP;
-typedef std::unordered_map<std::string, std::vector<std::string>> PARAMLISTMAP;
 
 enum OperationType
 {
