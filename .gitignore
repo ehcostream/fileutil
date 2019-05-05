@@ -17,3 +17,4 @@ zlibwrapper2/*.a
 zlibwrapper2/*.o
 *.a
 *.o
+lib/*
