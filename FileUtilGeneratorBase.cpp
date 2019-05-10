@@ -2,6 +2,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include "FileUtilHead.h"
+#include "CustomParamManager.h"
 
 CFileUtilBase* CFileUtilGeneratorBase::CreateCompresser()
 { 
@@ -24,6 +25,11 @@ CFileUtilBase* CFileUtilGeneratorBase::CreateEncoder()
 CFileUtilBase* CFileUtilGeneratorBase::CreateDecoder(const std::string& rstrInFile)
 { 
 	return nullptr; 
+}
+
+void CFileUtilGeneratorBase::Set(uint32_t dwCpuCore, uint64_t ullBuffSize)
+{
+	CCustomParamManager::Instance().Set(dwCpuCore, ullBuffSize);
 }
 
 CVersionInfo CFileUtilGeneratorBase::GetFileUtilVer(const std::string& rstrFile)

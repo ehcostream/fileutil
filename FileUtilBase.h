@@ -1,20 +1,17 @@
 #pragma once 
 #include "Zlibutil.h"
-
 class CFileUtilBase
 {
 public:
-	CFileUtilBase() 
+	CFileUtilBase()
     {
-        Init(m_dwCpuCore, m_ullBuffSize);
+        std::cout << __FUNCTION__ << " constructor" << std::endl; 
     }
 	virtual ~CFileUtilBase() = default;
 
 public:
 	virtual int 
 	Execute(const std::vector<std::string>& rvecFiles, const std::string& rstrOutDir, void* pExParam, std::string& rstrOutFile) = 0;
-
-    virtual void Init(uint32_t dwCpuCore, uint64_t ullBufferSize);
 
 protected:
 //常用的文件操作
@@ -34,7 +31,7 @@ protected:
     int DearchiveOneFileOrDir(std::ifstream& rifSource, const std::string& rstrOut);
 
     //获取一个临时(解)归档文件名
-    void GetTmpMiddleFile(std::string& rstrAchiveFile, bool bAchive, int nType = 0);
+    void GetTmpMiddleFile(std::string& rstrAchiveFile, bool bAchive, int nType = 0, int nThreadID = -1);
 
     //一个文件均分为多个子文件
     int CutFileIntoPieces(const std::string& rstrIn, std::vector<std::string>& rVecOutFiles, uint32_t dwBlcok);
@@ -42,12 +39,4 @@ protected:
     //合并多个文件为一个文件
     void CombainFiles(const std::vector<std::string>& rVecInFiles, const std::string& rstrOutFile);
 
-
-protected:
-    uint32_t m_dwCpuCore = CPU_CORE_DEFAULE;
-    uint64_t m_ullBuffSize = BUFF_SZE;
-
-private:
-    static const uint32_t CPU_CORE_DEFAULE = 1;
-    static const uint64_t BUFF_SZE = 1 <<  20;
 };

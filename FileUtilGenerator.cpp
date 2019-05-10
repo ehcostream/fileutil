@@ -15,7 +15,7 @@ CFileUtilBase* CFileUtilGenerator::CreateUncompresser(const std::string& rstrInF
 {
 	//兼容模式
 	CVersionInfo stVersionInfo(GetFileUtilVer(rstrInFile));
-	std::cout << stVersionInfo.Print() << std::endl;
+	std::cout << "file version:" << stVersionInfo.Print() << std::endl;
 	if(stVersionInfo.GetMinorVer() == Version::MINOR_VERSION)
 	{
 		//使用当前最新的
@@ -42,7 +42,7 @@ CFileUtilBase* CFileUtilGenerator::CreateDecoder(const std::string& rstrInFile)
 {
 	//兼容模式
 	CVersionInfo stVersionInfo(GetFileUtilVer(rstrInFile));
-	std::cout << stVersionInfo.Print() << std::endl;
+	std::cout << "file version:" << stVersionInfo.Print() << std::endl;
 	if(stVersionInfo.GetMinorVer() == Version::MINOR_VERSION)
 	{
 		//使用当前最新的
