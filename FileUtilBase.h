@@ -15,9 +15,8 @@ public:
 
 protected:
 //常用的文件操作
-	//文件内容复制
+	//文件内容复制,仅限于文件压缩
 	bool CatStream(std::istream& ris, std::ostream& ros);
-
     //归档
     int Archive(const std::vector<std::string>& rVecFile, const std::string& rstrOut);
 

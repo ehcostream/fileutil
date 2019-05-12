@@ -15,6 +15,6 @@ protected:
 private:
 	int CompressWithMT(const std::string rstrAchiveFile, const std::string& rstrOutDir);
 	
-    void CompressAFile(void* pParam);
+    void CompressAFile(ThreadParam& stParam);
 
 };

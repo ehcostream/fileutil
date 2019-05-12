@@ -14,9 +14,11 @@ int CFileUtil4Zlib::Compress(const std::vector<std::string>& rvecFiles, const st
         CFileUtilHead::Parse(*isp, nParseResult, stHead);
         if(std::string(stHead.szExt) == std::string(".zb"))
         {
+            ifsp->close();
             //重复压缩
             return 1;
         }
+        ifsp->close();
     }
     std::cout << CCustomParamManager::Instance().GetCpuCore() << std::endl;
     std::cout << CCustomParamManager::Instance().GetBuffSize() << std::endl;
@@ -77,11 +79,10 @@ int CFileUtil4Zlib::Compress(const std::vector<std::string>& rvecFiles, const st
         //调用zlib进行压缩
         std::unique_ptr< std::ostream> osp = std::unique_ptr< std::ostream >(new zio::ofstream(outFilePath.string(), CCustomParamManager::Instance().GetBuffSize()));
         std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(strMidFile));
-        std::istream* isp = ifsp.get();
 
         //附加文件头信息
         CFileUtilHead::Attach(*osp, outFilePath.string());
-        CatStream(*isp, *osp);
+        CatStream(*ifsp, *osp);
         ifsp->close();
         //删除临时文件
         fs::remove(fs::path(strMidFile));
@@ -118,6 +119,7 @@ int CFileUtil4Zlib::Uncompress(const std::string& rstrIn, const std::string& rst
         }
         CatStream(*isp, *osp);
         ofsp->close();
+
 
         //解档
         nError = Dearchive(strMidFile, rstrOutDir);
@@ -178,7 +180,7 @@ int CFileUtil4Zlib::CompressWithMT(const std::string rstrAchiveFile, const std::
         for(auto& param : vecThreadList)
         {
             auto threadCallBack = &CFileUtil4Zlib::CompressAFile;
-            threadPool.create_thread(boost::bind(threadCallBack, this, &param));
+            threadPool.create_thread(boost::bind(threadCallBack, this, std::ref(param)));
         }
 
         threadPool.join_all();    
@@ -211,15 +213,13 @@ int CFileUtil4Zlib::CompressWithMT(const std::string rstrAchiveFile, const std::
     return 0;
 }
 
-void CFileUtil4Zlib::CompressAFile(void* pParam)
+void CFileUtil4Zlib::CompressAFile(ThreadParam& stParam)
 {
-	assert(pParam != nullptr);
-    ThreadParam* pTParam = (ThreadParam*)pParam;
-    GetTmpMiddleFile(pTParam->strOutFile, true, 2, pTParam->threadSeq);
-    std::cout << "  thread source--->" << pTParam->strSource << std::endl;
-    std::unique_ptr< std::ostream > osp = std::unique_ptr< std::ostream >(new zio::ofstream(pTParam->strOutFile, pTParam->ullBuffSize));
-    std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(pTParam->strSource));
-    std::istream * isp = ifsp.get();
-    CatStream(*isp, *osp);
-    std::cout << "  thread result--->" << pTParam->strOutFile << std::endl;
+    GetTmpMiddleFile(stParam.strOutFile, true, 2, stParam.threadSeq);
+    std::cout << "  thread source--->" << stParam.strSource << "  thread result--->" << stParam.strOutFile << " buff size-->" << stParam.ullBuffSize << std::endl;
+    std::unique_ptr< std::ostream > osp = std::unique_ptr< std::ostream >(new zio::ofstream(stParam.strOutFile, stParam.ullBuffSize));
+    std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(stParam.strSource));
+    CatStream(*ifsp, *osp);
+    ifsp->close();
+    std::cout << "  thread result--->" << stParam.strOutFile << std::endl;
 }

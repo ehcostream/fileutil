@@ -10,10 +10,10 @@ bool CFileUtilBase::CatStream(std::istream& ris, std::ostream& ros)
         while (true && ris.peek() != EOF)
         {
             ris.read(szBuff, CCustomParamManager::Instance().GetBuffSize());
-            std::cout << "read " << CCustomParamManager::Instance().GetBuffSize() << std::endl;
             std::streamsize cnt = ris.gcount();
             if (cnt == 0)
             {
+                std::cout << "break" << std::endl;
                 break;
             }
             std::cout << "read " << cnt << std::endl;
@@ -338,7 +338,6 @@ int CFileUtilBase::CutFileIntoPieces(const std::string& rstrIn, std::vector<std:
         std::ofstream outFile(strOutFile, std::ofstream::binary);
         char bReadByte;
         bool bLast = (dwCurrent == dwBlcok -1);
-        uint32_t a = 0;
         for (uint64_t ullReadBytes = 0; ullReadBytes < (bLast ? ullLastPartSize : ullSizeAvg); ++ullReadBytes)
         {
             inAchiFile.read(&bReadByte, sizeof(char));
@@ -353,14 +352,14 @@ int CFileUtilBase::CutFileIntoPieces(const std::string& rstrIn, std::vector<std:
 
 void CFileUtilBase::CombainFiles(const std::vector<std::string>& rVecInFiles, const std::string& rstrOutFile)
 {
-    std::unique_ptr< std::ofstream > osp = std::unique_ptr< std::ofstream >(new std::ofstream(rstrOutFile));
+    std::unique_ptr< std::ofstream > osp = std::unique_ptr< std::ofstream >(new strict_fstream::ofstream(rstrOutFile));
     //附加头信息
     CFileUtilHead::Attach(*osp, rstrOutFile);
     
     for(const auto& file : rVecInFiles)
     {
         std::cout << "combain file : " << file << std::endl;
-        std::unique_ptr< std::ifstream > isp = std::unique_ptr< std::ifstream >(new std::ifstream(file));
+        std::unique_ptr< std::ifstream > isp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(file));
         CatStream(*isp, *osp);
         isp->close();
     }
