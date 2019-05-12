@@ -206,6 +206,8 @@ public:
             ? traits_type::eof()
             : traits_type::to_int_type(*this->gptr());
     }
+public:
+    std::streambuf* GetRdBuf(){ return sbuf_p; }
 private:
     std::streambuf * sbuf_p;
     char * in_buff;
@@ -307,6 +309,8 @@ public:
         deflateReset(zstrm_p);
         return 0;
     }
+public:
+    std::streambuf* GetRdBuf(){ return sbuf_p; }
 private:
     std::streambuf * sbuf_p;
     char * in_buff;
@@ -386,6 +390,12 @@ public:
     {
         if (rdbuf()) delete rdbuf();
     }
+public:
+    std::streambuf* GetStreamBuf() 
+    {
+        istreambuf* ibuf = static_cast<istreambuf*>(rdbuf());
+        return ibuf->GetRdBuf(); 
+    }
 }; // class ifstream
 
 class ofstream
@@ -402,6 +412,11 @@ public:
     virtual ~ofstream()
     {
         if (rdbuf()) delete rdbuf();
+    }
+    std::streambuf* GetStreamBuf() 
+    {
+        ostreambuf* obuf = static_cast<ostreambuf*>(rdbuf());
+        return obuf->GetRdBuf(); 
     }
 }; // class ofstream
 

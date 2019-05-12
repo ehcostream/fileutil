@@ -77,15 +77,22 @@ int CFileUtil4Zlib::Compress(const std::vector<std::string>& rvecFiles, const st
     else
     {
         //调用zlib进行压缩
-        std::unique_ptr< std::ostream> osp = std::unique_ptr< std::ostream >(new zio::ofstream(outFilePath.string(), CCustomParamManager::Instance().GetBuffSize()));
+        std::string strTmpFile;
+        GetTmpMiddleFile(strTmpFile, true);
+        std::unique_ptr< std::ostream> osp = std::unique_ptr< std::ostream >(new zio::ofstream(strTmpFile, CCustomParamManager::Instance().GetBuffSize()));
         std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(strMidFile));
-
+        zio::ofstream* ofsp = static_cast<zio::ofstream*>(osp.get());
         //附加文件头信息
-        CFileUtilHead::Attach(*osp, outFilePath.string());
+        
         CatStream(*ifsp, *osp);
         ifsp->close();
+        std::ifstream in(strTmpFile, std::ifstream::binary);
+        std::ofstream out(outFilePath.string(), std::ofstream::binary);
+        CFileUtilHead::Attach(out, outFilePath.string());
+        CatStream(in, out);
         //删除临时文件
         fs::remove(fs::path(strMidFile));
+        fs::remove(fs::path(strTmpFile));
     }
 	return 0;
 }
@@ -99,14 +106,18 @@ int CFileUtil4Zlib::Uncompress(const std::string& rstrIn, const std::string& rst
     //文件进行解压缩
     std::unique_ptr< std::ofstream > ofsp = std::unique_ptr< std::ofstream >(new strict_fstream::ofstream(strMidFile));
     std::ostream * osp = ofsp.get();
-    std::cout << __FUNCTION__ << "," << CCustomParamManager::Instance().GetBuffSize() << std::endl;
+    std::cout << __FUNCTION__ << "," << CCustomParamManager::Instance().GetBuffSize() << "，" << rstrIn << std::endl;
+    
     std::unique_ptr< std::istream > isp = std::unique_ptr< std::istream >(new zio::ifstream(rstrIn, CCustomParamManager::Instance().GetBuffSize()));
+    zio::ifstream* ifsp = static_cast<zio::ifstream*>(isp.get());
     FileHead stHead;
+    memset(&stHead, '\0', sizeof(stHead));
     int nError = 0;
+    std::ifstream in(rstrIn, std::ifstream::in | std::ifstream::binary);
     do
     {
         //检测文件是否有效
-        CFileUtilHead::Parse(*isp, nError, stHead);
+        CFileUtilHead::Parse(in, nError, stHead);
         if(nError != 0)
         {
             nError = 1;
@@ -117,15 +128,16 @@ int CFileUtil4Zlib::Uncompress(const std::string& rstrIn, const std::string& rst
             nError = 2;
             break;
         }
+
+        ifsp->GetStreamBuf()->pubseekoff(sizeof(stHead), ifsp->beg);
         CatStream(*isp, *osp);
         ofsp->close();
-
 
         //解档
         nError = Dearchive(strMidFile, rstrOutDir);
         std::cout <<  nError << std::endl;
     }while(false);
-    
+    in.close();
     //删除临时文件
     fs::remove(fs::path(strMidFile));
     std::cout << __FUNCTION__ << ", end" << std::endl;

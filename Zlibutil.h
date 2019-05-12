@@ -52,15 +52,6 @@ struct FileInfo
     char szFPath[255];
 };
 
-//加密文件头信息
-struct EncodeHeaderInfo
-{
-    //加密文件类型
-    char szExt[10];
-    //文件原名称
-    char szFilename[255];
-};
-
 //线程参数
 struct ThreadParam
 {

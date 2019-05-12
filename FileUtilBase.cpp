@@ -142,6 +142,7 @@ int CFileUtilBase::ArchiveOneFileOrDir(const std::string& rstrSource, std::ofstr
 
         //文件头部信息
         FileInfo fileInfo;
+        memset(&fileInfo, '\0', sizeof(fileInfo));
         fileInfo.bFType = FT_FILE;
         fileInfo.ullFSize = length;
         strncpy(fileInfo.szFPath, rstrSource.c_str(), rstrSource.length());
@@ -183,6 +184,7 @@ int CFileUtilBase::ArchiveOneFileOrDir(const std::string& rstrSource, std::ofstr
     else if(fs::is_directory(path))
     {
         FileInfo fileInfo;
+        memset(&fileInfo, '\0', sizeof(fileInfo));
         fileInfo.bFType = FT_DIR;
         fileInfo.ullFSize = 0;
         strncpy(fileInfo.szFPath, rstrSource.c_str(), rstrSource.length());
@@ -355,7 +357,6 @@ void CFileUtilBase::CombainFiles(const std::vector<std::string>& rVecInFiles, co
     std::unique_ptr< std::ofstream > osp = std::unique_ptr< std::ofstream >(new strict_fstream::ofstream(rstrOutFile));
     //附加头信息
     CFileUtilHead::Attach(*osp, rstrOutFile);
-    
     for(const auto& file : rVecInFiles)
     {
         std::cout << "combain file : " << file << std::endl;

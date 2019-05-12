@@ -34,7 +34,6 @@ void CFileUtilGeneratorBase::Set(uint32_t dwCpuCore, uint64_t ullBuffSize)
 
 CVersionInfo CFileUtilGeneratorBase::GetFileUtilVer(const std::string& rstrFile)
 {
-	//TODO读取文件头信息
 	FileHead stHead;
 	int nError = CFileUtilHead::GetData(rstrFile, stHead);
 	if(nError != 0)
