@@ -63,7 +63,7 @@ int CSymCrypto::SymEncode(const std::string& rstrSource, const std::string& rstr
         }
 
         std::cout << "source:" << rstrSource << "out:" << rstrOutFile << std::endl;
-        out.open(rstrOutFile, std::ofstream::out | std::ofstream::trunc);
+        out.open(rstrOutFile, std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
         if(!out.is_open())
         {
             nError = 4;

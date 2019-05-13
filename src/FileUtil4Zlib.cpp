@@ -4,90 +4,139 @@ int CFileUtil4Zlib::Compress(const std::vector<std::string>& rvecFiles, const st
 {
     std::cout << "Compress" << std::endl;
     assert(rvecFiles.size() > 0);
-    
-    if(fs::is_regular_file(rvecFiles.front()) && rvecFiles.size() == 1)
+    int nError = 0;
+    do
     {
-        int nParseResult = 0;
-        std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(rvecFiles.front()));
-        std::istream * isp = ifsp.get();
-        FileHead stHead;
-        CFileUtilHead::Parse(*isp, nParseResult, stHead);
-        if(std::string(stHead.szExt) == std::string(".zb"))
+        if(fs::is_regular_file(rvecFiles.front()) && rvecFiles.size() == 1)
         {
-            //重复压缩
-            return 1;
-        }
-    }
-    //归档
-    std::string strMidFile;
-    GetTmpMiddleFile(strMidFile, true);
-    assert(!strMidFile.empty());
-    Archive(rvecFiles, strMidFile);
-
-    fs::path outDir(rstrOutDir);
-    if(!fs::exists(outDir))
-    {
-        fs::create_directories(outDir);
-    }
-
-    fs::path outFilePath(outDir);
-    std::string strExtension = ".ar.zb";
-    std::string strTargetFile;
-
-    auto file = rvecFiles.front();
-    if(rvecFiles.size() > 1)
-    {
-        //如果有多个文件/夹，以第一个文件的父目录名称为文件名建立压缩文件
-        strTargetFile = fs::path(fs::absolute(file)).parent_path().filename().string();
-    }
-    else
-    {
-        fs::path path(file);
-        if(fs::is_regular_file(path))
-        {
-            strTargetFile = path.stem().string();
-        }
-        if(fs::is_directory(path))
-        {
-            if(std::string(&file.back()) == std::string("/") || std::string(&file.back()) == std::string("\\"))
+            int nParseResult = 0;
+            std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(rvecFiles.front()));
+            std::istream * isp = ifsp.get();
+            FileHead stHead;
+            CFileUtilHead::Parse(*isp, nParseResult, stHead);
+            if(std::string(stHead.szExt) == std::string(".zb"))
             {
-                file.pop_back();
+                ifsp->close();
+                //重复压缩
+                nError = 10;
+                break;
             }
-            path = fs::path(file);
-            strTargetFile = path.filename().string();
+            ifsp->close();
+        }
+        std::cout << CCustomParamManager::Instance().GetCpuCore() << std::endl;
+        std::cout << CCustomParamManager::Instance().GetBuffSize() << std::endl;
+        //归档
+        std::string strMidFile;
+        GetTmpMiddleFile(strMidFile, true);
+        assert(!strMidFile.empty());
+        nError = Archive(rvecFiles, strMidFile);
+        fs::path outFilePath;
+        try
+        {
+            fs::path outDir(rstrOutDir);
+            if(!fs::exists(outDir))
+            {
+                fs::create_directories(outDir);
+            }
+
+            outFilePath = fs::path(outDir);
+            std::string strExtension = ".ar.zb";
+            std::string strTargetFile;
+
+            auto file = rvecFiles.front();
+            for(const auto& file : rvecFiles)
+            {
+                std::cout << file << std::endl;
+            }
+            if(rvecFiles.size() > 1)
+            {
+                //如果有多个文件/夹，以第一个文件的父目录名称为文件名建立压缩文件
+                fs::path ptmp(fs::absolute(file));
+                if(std::string(&file.back()) == std::string("/") || std::string(&file.back()) == std::string("\\"))
+                {
+                    file.pop_back();
+                }
+                strTargetFile = fs::canonical(fs::absolute(file).parent_path()).filename().string();
+            }
+            else
+            {
+                fs::path path(file);
+                std::cout << "--->" << file << std::endl;
+                if(fs::is_regular_file(path))
+                {
+                    strTargetFile = path.stem().string();
+                }
+                if(fs::is_directory(path))
+                {
+                    if(std::string(&file.back()) == std::string("/") || std::string(&file.back()) == std::string("\\"))
+                    {
+                        file.pop_back();
+                    }
+                    path = fs::path(file);
+                    strTargetFile = path.filename().string();
+                }
+                
+                std::cout << strTargetFile << std::endl;
+            }
+            strTargetFile.append(strExtension);
+            outFilePath /= strTargetFile;
+            std::cout << "compress out file :" << outFilePath << std::endl;
+            rstrOutFile = outFilePath.string();
+
+        }
+        catch(std::exception ex)
+        {
+            nError = 11;
+            std::cout << "An file exception occured, " << ex.what() << std::endl;
         }
         
-        std::cout << strTargetFile << std::endl;
-    }
-    strTargetFile.append(strExtension);
-    outFilePath /= strTargetFile;
-    std::cout << "compress out file :" << outFilePath << std::endl;
-    rstrOutFile = outFilePath.string();
-    if(m_dwCpuCore > 1)
-    {
-        //多线程压缩
-        CompressWithMT(strMidFile, outFilePath.string());
-    }
-    else
-    {
-        //调用zlib进行压缩
-        std::unique_ptr< std::ostream > osp = std::unique_ptr< std::ostream >(new zio::ofstream(outFilePath.string(), m_ullBuffSize));
+        std::cout << CCustomParamManager::Instance().GetCpuCore() << "," << CCustomParamManager::Instance().GetBuffSize() << std::endl;
+        if(CCustomParamManager::Instance().GetCpuCore() > 1)
+        {
+            //多线程压缩
+            nError = CompressWithMT(strMidFile, outFilePath.string());
+        }
+        else
+        {
+            //调用zlib进行压缩
+            std::string strTmpFile;
+            do
+            {
+                GetTmpMiddleFile(strTmpFile, true);
+                std::unique_ptr< std::ostream> osp = std::unique_ptr< std::ostream >(new zio::ofstream(strTmpFile, CCustomParamManager::Instance().GetBuffSize()));
+                std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(strMidFile));
+                zio::ofstream* ofsp = static_cast<zio::ofstream*>(osp.get());
+                //附加文件头信息
+                try
+                {
+                    CatStream(*ifsp, *osp);
+                }
+                catch(std::exception ex)
+                {
+                    nError = 12;
+                    std::cout << "An compress exception occured, " << ex.what() << std::endl;
+                }
+                ifsp->close();
+                
+            }while(false);
+            std::ifstream in(strTmpFile, std::ifstream::binary);
+            std::ofstream out(outFilePath.string(), std::ofstream::binary);
+            CFileUtilHead::Attach(out, outFilePath.string());
+            CatStream(in, out);
 
-        std::unique_ptr< std::ifstream > ifsp;
-        std::istream * isp = &std::cin;
-
-        ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(strMidFile));
-        isp = ifsp.get();
-
-        //附加文件头信息
-        CFileUtilHead::Attach(*osp, outFilePath.string());
-        CatStream(*isp, *osp);
-
-        //删除临时文件
-        fs::remove(fs::path(strMidFile));
-    }
-
-	return 0;
+            in.close();
+            out.close();
+            //删除临时文件
+            std::cout << "remove strMidFile " << strMidFile << std::endl;
+            fs::remove(fs::path(strMidFile));
+            std::cout << "remove strTmpFile " << strTmpFile << std::endl;
+            fs::remove(fs::path(strTmpFile));
+            
+        }
+    }while(false);
+    
+    
+	return nError;
 }
 
 int CFileUtil4Zlib::Uncompress(const std::string& rstrIn, const std::string& rstrOutDir)
@@ -95,19 +144,30 @@ int CFileUtil4Zlib::Uncompress(const std::string& rstrIn, const std::string& rst
 	std::string strMidFile;
     GetTmpMiddleFile(strMidFile, false);
     assert(!strMidFile.empty());
+    std::cout << this << std::endl;
     //文件进行解压缩
-    std::unique_ptr< std::ofstream > ofsp;
-    std::ostream * osp = &std::cout;
-    ofsp = std::unique_ptr< std::ofstream >(new strict_fstream::ofstream(strMidFile));
-    osp = ofsp.get();
-    std::unique_ptr< std::istream > isp = std::unique_ptr< std::istream >(new zio::ifstream(rstrIn, m_ullBuffSize));
-
+    std::unique_ptr< std::ofstream > ofsp = std::unique_ptr< std::ofstream >(new strict_fstream::ofstream(strMidFile));
+    std::ostream * osp = ofsp.get();
+    std::cout << __FUNCTION__ << "," << CCustomParamManager::Instance().GetBuffSize() << "," << rstrIn << std::endl;
+    
+    std::unique_ptr< std::istream > isp = std::unique_ptr< std::istream >(new zio::ifstream(rstrIn, CCustomParamManager::Instance().GetBuffSize()));
+    zio::ifstream* ifsp = static_cast<zio::ifstream*>(isp.get());
     FileHead stHead;
+    memset(&stHead, '\0', sizeof(stHead));
     int nError = 0;
+
+    std::ifstream in;
     do
     {
+        if(fs::is_directory(fs::path(rstrIn)))
+        {
+            std::cout << "file format is invalid" << std::endl;
+            nError = 1;
+            break;   
+        }
+        in.open(rstrIn, std::ifstream::in | std::ifstream::binary);
         //检测文件是否有效
-        CFileUtilHead::Parse(*isp, nError, stHead);
+        CFileUtilHead::Parse(in, nError, stHead);
         if(nError != 0)
         {
             nError = 1;
@@ -119,13 +179,18 @@ int CFileUtil4Zlib::Uncompress(const std::string& rstrIn, const std::string& rst
             break;
         }
 
+        ifsp->GetStreamBuf()->pubseekoff(sizeof(stHead), ifsp->beg);
         CatStream(*isp, *osp);
-        //解档
-        Dearchive(strMidFile, rstrOutDir);
-    }while(false);
+        ofsp->close();
 
+        //解档
+        nError = Dearchive(strMidFile, rstrOutDir);
+        std::cout <<  nError << std::endl;
+    }while(false);
+    in.close();
     //删除临时文件
     fs::remove(fs::path(strMidFile));
+    std::cout << __FUNCTION__ << ", end" << std::endl;
 	return nError;
 }
 
@@ -134,58 +199,68 @@ int CFileUtil4Zlib::CompressWithMT(const std::string rstrAchiveFile, const std::
     //切割为多个多文件
     //开启线程池，加入多个线程，根据buffsize平均分配，同时压缩文件
     //等待所有线程完成，将结果写入目标文件中
-    assert(m_ullBuffSize > 0 && m_dwCpuCore > 1);
+    assert(CCustomParamManager::Instance().GetBuffSize() > 0 && CCustomParamManager::Instance().GetCpuCore() > 1);
 
-    uint32_t dwThreadCnt = m_dwCpuCore;
+    uint32_t dwThreadCnt = CCustomParamManager::Instance().GetCpuCore();
     std::vector<std::string> vecFiles;
-    CutFileIntoPieces(rstrAchiveFile, vecFiles, dwThreadCnt);
-    if(vecFiles.size() != dwThreadCnt)
-    {
-        std::cout << "vecfiles size:" << vecFiles.size() << std::endl;;
-        return 1;
-    }
-
-    std::vector<ThreadParam> vecThreadList;
-    uint32_t dwGeneralAvg = floor(m_ullBuffSize / dwThreadCnt);
-    boost::thread_group threadPool;
-    //初始化线程池
-    for(uint32_t i = 0; i< dwThreadCnt; i++)
-    {
-        ThreadParam stThreadParam;
-        if(i == dwThreadCnt -1)
-        {
-            stThreadParam.ullBuffSize = m_ullBuffSize - dwGeneralAvg * (dwThreadCnt - 1);
-        }
-        else
-        {
-            stThreadParam.ullBuffSize = dwGeneralAvg;
-        }
-        stThreadParam.strSource = vecFiles[i];
-        vecThreadList.emplace_back(stThreadParam);
-    }
-
-    std::cout << "thread prepare..." << vecThreadList.size() << std::endl;
-    //多线程同时压缩数据
-    for(auto& param : vecThreadList)
-    {
-    	auto threadCallBack = &CFileUtil4Zlib::CompressAFile;
-        threadPool.create_thread(boost::bind(threadCallBack, this, &param));
-    }
-
-    threadPool.join_all();    
-    
-    std::cout << "thread finished" << std::endl;
-    //处理完成重组数据
     std::vector<std::string> vecResultFiles;
-    for(const auto& param : vecThreadList)
+
+    int nError = 0;
+    do
     {
-        vecResultFiles.emplace_back(param.strOutFile);
-    }
+        
+        CutFileIntoPieces(rstrAchiveFile, vecFiles, dwThreadCnt);
+        if(vecFiles.size() != dwThreadCnt)
+        {
+            std::cout << "vecfiles size invalid:" << vecFiles.size() << std::endl;;
+            nError = 1;
+            break;
+        }
 
-    std::cout << "ready to combain files" << std::endl;
-    //重组数据
-    CombainFiles(vecResultFiles, rstrOutDir);
+        std::vector<ThreadParam> vecThreadList;
+        uint32_t dwGeneralAvg = floor(CCustomParamManager::Instance().GetBuffSize() / dwThreadCnt);
+        boost::thread_group threadPool;
+        //初始化线程池
+        for(uint32_t i = 0; i< dwThreadCnt; i++)
+        {
+            ThreadParam stThreadParam;
+            stThreadParam.threadSeq = i;
+            if(i == dwThreadCnt -1)
+            {
+                stThreadParam.ullBuffSize = CCustomParamManager::Instance().GetBuffSize() - dwGeneralAvg * (dwThreadCnt - 1);
+            }
+            else
+            {
+                stThreadParam.ullBuffSize = dwGeneralAvg;
+            }
+            stThreadParam.strSource = vecFiles[i];
+            vecThreadList.emplace_back(stThreadParam);
+        }
 
+        std::cout << "thread prepare..." << vecThreadList.size() << std::endl;
+        //多线程同时压缩数据
+        for(auto& param : vecThreadList)
+        {
+            auto threadCallBack = &CFileUtil4Zlib::CompressAFile;
+            threadPool.create_thread(boost::bind(threadCallBack, this, std::ref(param)));
+        }
+
+        threadPool.join_all();    
+        
+        std::cout << "thread finished" << std::endl;
+        //处理完成重组数据
+        
+        for(const auto& param : vecThreadList)
+        {
+            vecResultFiles.emplace_back(param.strOutFile);
+        }
+
+        std::cout << "ready to combain files" << std::endl;
+        //重组数据
+        CombainFiles(vecResultFiles, rstrOutDir);
+
+        
+    }while(false);
     //清理中间文件
     fs::remove(fs::path(rstrAchiveFile));
     for(const auto& file : vecFiles)
@@ -200,15 +275,13 @@ int CFileUtil4Zlib::CompressWithMT(const std::string rstrAchiveFile, const std::
     return 0;
 }
 
-void CFileUtil4Zlib::CompressAFile(void* pParam)
+void CFileUtil4Zlib::CompressAFile(ThreadParam& stParam)
 {
-	assert(pParam != nullptr);
-    ThreadParam* pTParam = (ThreadParam*)pParam;
-    GetTmpMiddleFile(pTParam->strOutFile, true, 2);
-    std::cout << "  thread source--->" << pTParam->strSource << std::endl;
-    std::unique_ptr< std::ostream > osp = std::unique_ptr< std::ostream >(new zio::ofstream(pTParam->strOutFile, pTParam->ullBuffSize));
-    std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(pTParam->strSource));
-    std::istream * isp = ifsp.get();
-    CatStream(*isp, *osp);
-    std::cout << "  thread result--->" << pTParam->strOutFile << std::endl;
+    GetTmpMiddleFile(stParam.strOutFile, true, 2, stParam.threadSeq);
+    std::cout << "  thread source--->" << stParam.strSource << "  thread result--->" << stParam.strOutFile << " buff size-->" << stParam.ullBuffSize << std::endl;
+    std::unique_ptr< std::ostream > osp = std::unique_ptr< std::ostream >(new zio::ofstream(stParam.strOutFile, stParam.ullBuffSize));
+    std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(stParam.strSource));
+    CatStream(*ifsp, *osp);
+    ifsp->close();
+    std::cout << "  thread result--->" << stParam.strOutFile << std::endl;
 }

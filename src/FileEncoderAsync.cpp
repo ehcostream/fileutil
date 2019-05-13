@@ -4,6 +4,7 @@ int CFileEncoderAsync::Execute(const std::vector<std::string>& rvecFiles, const 
 {
 	assert(rvecFiles.size() == 1);
 	const char* szKey = (const char*)pExParam;
+	assert(szKey != nullptr);
 	std::string strKey(szKey);
 
 	CThreadPool::Instance().Post(boost::bind(&CFileEncoderAsync::SymEncode, this, rvecFiles.front(), rstrOutDir, strKey, true, std::ref(rstrOutFile)));

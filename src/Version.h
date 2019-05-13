@@ -9,6 +9,6 @@
 namespace Version
 {
 	static const uint32_t MAJOR_VERSION = 1;
-	static const uint32_t MINOR_VERSION = 0;
+	static const uint32_t MINOR_VERSION = 1;
 	static const uint32_t PATCH_VERSION = 0;
 }

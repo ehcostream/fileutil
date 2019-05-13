@@ -146,11 +146,11 @@ class ifstream
 {
 public:
     ifstream() = default;
-    ifstream(const std::string& filename, std::ios_base::openmode mode = std::ios_base::in)
+    ifstream(const std::string& filename, std::ios_base::openmode mode = std::ios_base::binary)
     {
         open(filename, mode);
     }
-    void open(const std::string& filename, std::ios_base::openmode mode = std::ios_base::in)
+    void open(const std::string& filename, std::ios_base::openmode mode = std::ios_base::binary)
     {
         mode |= std::ios_base::in;
         exceptions(std::ios_base::badbit);
@@ -166,11 +166,11 @@ class ofstream
 {
 public:
     ofstream() = default;
-    ofstream(const std::string& filename, std::ios_base::openmode mode = std::ios_base::out)
+    ofstream(const std::string& filename, std::ios_base::openmode mode = std::ios_base::binary)
     {
         open(filename, mode);
     }
-    void open(const std::string& filename, std::ios_base::openmode mode = std::ios_base::out)
+    void open(const std::string& filename, std::ios_base::openmode mode = std::ios_base::binary)
     {
         mode |= std::ios_base::out;
         exceptions(std::ios_base::badbit);
@@ -185,11 +185,11 @@ class fstream
 {
 public:
     fstream() = default;
-    fstream(const std::string& filename, std::ios_base::openmode mode = std::ios_base::in)
+    fstream(const std::string& filename, std::ios_base::openmode mode = std::ios_base::binary)
     {
         open(filename, mode);
     }
-    void open(const std::string& filename, std::ios_base::openmode mode = std::ios_base::in)
+    void open(const std::string& filename, std::ios_base::openmode mode = std::ios_base::binary)
     {
         if (! (mode & std::ios_base::out)) mode |= std::ios_base::in;
         exceptions(std::ios_base::badbit);

@@ -34,7 +34,8 @@ CFileUtilBase* CFileUtilGeneratorAsync::CreateUncompresser(const std::string& rs
 	if(stVersionInfo.GetMinorVer() == Version::MINOR_VERSION)
 	{
 		//使用当前最新的
-		return new CFileUncompresserAsync();
+		CFileUtilBase* base = new CFileUncompresserAsync();
+		return base;
 	}
 	else if(stVersionInfo.GetMinorVer() == 50)
 	{

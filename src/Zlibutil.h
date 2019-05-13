@@ -30,6 +30,7 @@
 #include "Version.h"
 #include "ThreadPool.h"
 #include "FileUtilHead.h"
+#include "CustomParamManager.h"
 namespace fs = boost::filesystem;
 
 //进行归档的文件的头部信息
@@ -51,18 +52,10 @@ struct FileInfo
     char szFPath[255];
 };
 
-//加密文件头信息
-struct EncodeHeaderInfo
-{
-    //加密文件类型
-    char szExt[10];
-    //文件原名称
-    char szFilename[255];
-};
-
 //线程参数
 struct ThreadParam
 {
+    int threadSeq;
     uint64_t ullBuffSize;
     std::string strSource;
     std::string strOutFile;

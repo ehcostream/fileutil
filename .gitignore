@@ -18,3 +18,4 @@ zlibwrapper2/*.o
 *.a
 *.o
 lib/*
+bld/*

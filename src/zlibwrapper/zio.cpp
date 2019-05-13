@@ -206,6 +206,8 @@ public:
             ? traits_type::eof()
             : traits_type::to_int_type(*this->gptr());
     }
+public:
+    std::streambuf* GetRdBuf(){ return sbuf_p; }
 private:
     std::streambuf * sbuf_p;
     char * in_buff;
@@ -307,6 +309,8 @@ public:
         deflateReset(zstrm_p);
         return 0;
     }
+public:
+    std::streambuf* GetRdBuf(){ return sbuf_p; }
 private:
     std::streambuf * sbuf_p;
     char * in_buff;
@@ -377,7 +381,7 @@ class ifstream
 {
 public:
     explicit ifstream(const std::string& filename, uint64_t dwBuffSize, std::ios_base::openmode mode = std::ios_base::in)
-        : detail::strict_fstream_holder< strict_fstream::ifstream >(filename, mode),
+        : detail::strict_fstream_holder< strict_fstream::ifstream >(filename, mode | std::ios_base::binary),
           std::istream(new istreambuf(_fs.rdbuf(), dwBuffSize))
     {
         exceptions(std::ios_base::badbit);
@@ -385,6 +389,12 @@ public:
     virtual ~ifstream()
     {
         if (rdbuf()) delete rdbuf();
+    }
+public:
+    std::streambuf* GetStreamBuf() 
+    {
+        istreambuf* ibuf = static_cast<istreambuf*>(rdbuf());
+        return ibuf->GetRdBuf(); 
     }
 }; // class ifstream
 
@@ -402,6 +412,11 @@ public:
     virtual ~ofstream()
     {
         if (rdbuf()) delete rdbuf();
+    }
+    std::streambuf* GetStreamBuf() 
+    {
+        ostreambuf* obuf = static_cast<ostreambuf*>(rdbuf());
+        return obuf->GetRdBuf(); 
     }
 }; // class ofstream
 

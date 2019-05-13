@@ -107,7 +107,7 @@ std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError, FileHead& rst
 		rstIn.read((char*)&rstHead, sizeof(FileHead));
 		std::ostringstream oss;
 		oss << std::string(rstHead.szVersion) << std::string(rstHead.szKey) << rstHead.dwTimeStamp << std::string(rstHead.szExt) << std::string(rstHead.szFilename);
-
+		std::cout << rstHead.szVersion << "," << rstHead.szExt << "," << rstHead.szFilename << std::endl;
 		std::string strSign(MD5::Encode(oss.str()));
 		if(std::string(rstHead.szSign) != strSign)
 		{
@@ -135,12 +135,16 @@ std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError, FileHead& rst
 
 int CFileUtilHead::GetData(const std::string& rstrFile, FileHead& rstHead)
 {
+	if(fs::is_directory(fs::path(rstrFile)))
+	{
+		return 2;
+	}
 	std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(rstrFile));
 	std::istream * isp = ifsp.get();
 	(*isp).read((char*)&rstHead, sizeof(FileHead));
 	std::ostringstream oss;
 	oss << std::string(rstHead.szVersion) << std::string(rstHead.szKey) << rstHead.dwTimeStamp << std::string(rstHead.szExt) << std::string(rstHead.szFilename);
-
+	ifsp->close();
 	std::string strSign(MD5::Encode(oss.str()));
 	if(std::string(rstHead.szSign) != strSign)
 	{
