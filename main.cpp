@@ -213,6 +213,11 @@ int main(int argc, char** argv)
         case OT_COMPRESS:
         {
             std::unique_ptr<CFileUtilBase> pstCompresser = std::unique_ptr<CFileUtilBase>(pstBase->CreateCompresser());
+            if(pstCompresser == nullptr)
+            {
+                nError = 1;
+                break;
+            }
             nError = pstCompresser->Execute(boost::any_cast<std::vector<std::string>>(stParamMap[PKM_FC]), 
                                    boost::any_cast<std::string>(stParamMap[PKM_OUT]), 
                                    nullptr, 
@@ -222,7 +227,11 @@ int main(int argc, char** argv)
         case OT_UNCOMPRESS:
         {
             std::unique_ptr<CFileUtilBase> pstUncompresser = std::unique_ptr<CFileUtilBase>(pstBase->CreateUncompresser(boost::any_cast<std::string>(stParamMap[PKM_FU])));
-
+            if(pstUncompresser == nullptr)
+            {
+                nError = 2;
+                break;
+            }
             std::vector<std::string> stvecFiles;
             stvecFiles.emplace_back(boost::any_cast<std::string>(stParamMap[PKM_FU]));
             nError = pstUncompresser->Execute(stvecFiles,
@@ -261,7 +270,11 @@ int main(int argc, char** argv)
             if(!bAsync)
             {
                 std::unique_ptr<CFileUtilBase> pstDecoder = std::unique_ptr<CFileUtilBase>(pstBase->CreateDecoder(boost::any_cast<std::string>(stParamMap[PKM_FD])));
-
+                if(pstDecoder == nullptr)
+                {
+                    nError = 3;
+                    break;
+                }
                 std::vector<std::string> stvecFiles;
                 stvecFiles.emplace_back(boost::any_cast<std::string>(stParamMap[PKM_FD]));
                 int nError = pstDecoder->Execute(stvecFiles, 
@@ -305,7 +318,11 @@ int main(int argc, char** argv)
         case OT_DECODE:
         {
             std::unique_ptr<CFileUtilBase> pstDecoder = std::unique_ptr<CFileUtilBase>(pstBase->CreateDecoder(boost::any_cast<std::string>(stParamMap[PKM_FD])));
-
+            if(pstDecoder == nullptr)
+            {
+                nError = 4;
+                break;
+            }
             std::vector<std::string> stvecFiles;
             std::cout << boost::any_cast<std::string>(stParamMap[PKM_KEY]) << std::endl;
             stvecFiles.emplace_back(boost::any_cast<std::string>(stParamMap[PKM_FD]));

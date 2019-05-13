@@ -134,9 +134,17 @@ int CFileUtil4Zlib::Uncompress(const std::string& rstrIn, const std::string& rst
     FileHead stHead;
     memset(&stHead, '\0', sizeof(stHead));
     int nError = 0;
-    std::ifstream in(rstrIn, std::ifstream::in | std::ifstream::binary);
+
+    std::ifstream in;
     do
     {
+        if(fs::is_directory(fs::path(rstrIn)))
+        {
+            std::cout << "file format is invalid" << std::endl;
+            nError = 1;
+            break;   
+        }
+        in.open(rstrIn, std::ifstream::in | std::ifstream::binary);
         //检测文件是否有效
         CFileUtilHead::Parse(in, nError, stHead);
         if(nError != 0)

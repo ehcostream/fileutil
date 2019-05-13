@@ -135,6 +135,10 @@ std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError, FileHead& rst
 
 int CFileUtilHead::GetData(const std::string& rstrFile, FileHead& rstHead)
 {
+	if(fs::is_directory(fs::path(rstrFile)))
+	{
+		return 2;
+	}
 	std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(rstrFile));
 	std::istream * isp = ifsp.get();
 	(*isp).read((char*)&rstHead, sizeof(FileHead));

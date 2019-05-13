@@ -20,6 +20,13 @@ public:
 		}
 		return *this;
 	}
+
+	bool operator==(CVersionInfo version)
+	{
+		return (version.GetMajorVer() == GetMajorVer()) &&
+			   (version.GetMinorVer() == GetMinorVer()) &&
+			   (version.GetPatchVer() == GetPatchVer());
+	}
 	
 	CVersionInfo(const CVersionInfo& version)
 	{
