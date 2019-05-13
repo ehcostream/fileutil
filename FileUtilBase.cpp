@@ -44,11 +44,10 @@ int CFileUtilBase::Archive(const std::vector<std::string>& rVecFile, const std::
         std::cout << "out " << rstrOut << ", open state " << oArcFile.is_open() << std::endl;
         for(const auto& rFile : rVecFile)
         {
-
             fs::path path(rFile);
             if(!fs::exists(path))
             {
-                nError = -1;
+                nError = 1;
                 break;
             }
             else
@@ -66,7 +65,7 @@ int CFileUtilBase::Archive(const std::vector<std::string>& rVecFile, const std::
                         std::string strRoot = fs::path(tmp).filename().string();
                         for(fs::recursive_directory_iterator dir_end, dir(rFile); dir != dir_end; ++dir)
                         {
-                            ArchiveOneFileOrDir(dir->path().string(), strRoot, oArcFile);
+                            nError = ArchiveOneFileOrDir(dir->path().string(), strRoot, oArcFile);
                         }
                         
                     }
@@ -74,13 +73,14 @@ int CFileUtilBase::Archive(const std::vector<std::string>& rVecFile, const std::
                     {
                         std::cout << "File-->" << path.filename().string() << std::endl;
 
-                        ArchiveOneFileOrDir(path.string(), path.filename().string(), oArcFile); 
+                        nError = ArchiveOneFileOrDir(path.string(), path.filename().string(), oArcFile); 
                     }
                     
                 }
                 catch(fs::filesystem_error e)
                 {
                     std::cout << e.what() << std::endl;
+                    nError = 99;
                 }
                 
             }
@@ -135,81 +135,89 @@ int CFileUtilBase::Dearchive(const std::string& rstrArchivedFile, const std::str
 
 int CFileUtilBase::ArchiveOneFileOrDir(const std::string& rstrSource, const std::string& rstrRoot, std::ofstream& rofArchiveFile)
 {
-    assert(CCustomParamManager::Instance().GetBuffSize() != 0);
-    fs::path path(rstrSource);
-    //std::cout <<  ", " << path.parent_path() << "," << fs::canonical(fs::absolute(path)) << std::endl;
-    if(fs::is_regular_file(path))
+    try
     {
-        std::ifstream iReadyFile(rstrSource, std::ifstream::binary);
-        //该缓冲区会被反复写入，但都是根据指定字节长度读取或者写入，因此不用每次memset(pszBuff.get(), 0, CCustomParamManager::Instance().GetBuffSize());
-        std::unique_ptr<char> pszBuff = std::unique_ptr<char>(new char[CCustomParamManager::Instance().GetBuffSize()]);
-        
-        iReadyFile.seekg(0, iReadyFile.end);
-        uint64_t length = iReadyFile.tellg();
-        iReadyFile.seekg(0, iReadyFile.beg);
-
-        //文件头部信息
-        FileInfo fileInfo;
-        memset(&fileInfo, '\0', sizeof(fileInfo));
-        fileInfo.bFType = FT_FILE;
-        fileInfo.ullFSize = length;
-
-        std::string strSource = path.string();
-        std::string strTarget;
-        RebuildPath(strSource, rstrRoot, strTarget);
-        strncpy(fileInfo.szFPath, strTarget.c_str(), strTarget.length());
-        strncpy(&fileInfo.szFPath[0] + strTarget.length(), "\0", 1); 
-        
-        //写入头部信息
-        rofArchiveFile.write((char*)&fileInfo,sizeof(FileInfo));
-
-        char* szBuff = pszBuff.get();
-        if(length > CCustomParamManager::Instance().GetBuffSize())
+        assert(CCustomParamManager::Instance().GetBuffSize() != 0);
+        fs::path path(rstrSource);
+        //std::cout <<  ", " << path.parent_path() << "," << fs::canonical(fs::absolute(path)) << std::endl;
+        if(fs::is_regular_file(path))
         {
-            //如果文件大小大于缓冲区大小
-            while(iReadyFile.peek() != EOF)
-            {
-                iReadyFile.read(szBuff, CCustomParamManager::Instance().GetBuffSize());
+            std::ifstream iReadyFile(rstrSource, std::ifstream::binary);
+            //该缓冲区会被反复写入，但都是根据指定字节长度读取或者写入，因此不用每次memset(pszBuff.get(), 0, CCustomParamManager::Instance().GetBuffSize());
+            std::unique_ptr<char> pszBuff = std::unique_ptr<char>(new char[CCustomParamManager::Instance().GetBuffSize()]);
+            
+            iReadyFile.seekg(0, iReadyFile.end);
+            uint64_t length = iReadyFile.tellg();
+            iReadyFile.seekg(0, iReadyFile.beg);
 
-                if(iReadyFile)
+            //文件头部信息
+            FileInfo fileInfo;
+            memset(&fileInfo, '\0', sizeof(fileInfo));
+            fileInfo.bFType = FT_FILE;
+            fileInfo.ullFSize = length;
+
+            std::string strSource = path.string();
+            std::string strTarget;
+            RebuildPath(strSource, rstrRoot, strTarget);
+            strncpy(fileInfo.szFPath, strTarget.c_str(), strTarget.length());
+            strncpy(&fileInfo.szFPath[0] + strTarget.length(), "\0", 1); 
+
+            //写入头部信息
+            rofArchiveFile.write((char*)&fileInfo,sizeof(FileInfo));
+
+            char* szBuff = pszBuff.get();
+            if(length > CCustomParamManager::Instance().GetBuffSize())
+            {
+                //如果文件大小大于缓冲区大小
+                while(iReadyFile.peek() != EOF)
                 {
-                    //所有字符成功读取
-                    rofArchiveFile.write(szBuff, CCustomParamManager::Instance().GetBuffSize());
-                }
-                else
-                {
-                    //实际读取字节数
-                    uint32_t readByteCnt = iReadyFile.gcount();
-                    rofArchiveFile.write(szBuff, readByteCnt);
+                    iReadyFile.read(szBuff, CCustomParamManager::Instance().GetBuffSize());
+
+                    if(iReadyFile)
+                    {
+                        //所有字符成功读取
+                        rofArchiveFile.write(szBuff, CCustomParamManager::Instance().GetBuffSize());
+                    }
+                    else
+                    {
+                        //实际读取字节数
+                        uint32_t readByteCnt = iReadyFile.gcount();
+                        rofArchiveFile.write(szBuff, readByteCnt);
+                    }
                 }
             }
+            else
+            {
+                //如果文件大小小于缓冲区大小
+                iReadyFile.read(szBuff, CCustomParamManager::Instance().GetBuffSize());
+                uint32_t dwSize = iReadyFile.gcount();
+                rofArchiveFile.write(szBuff, dwSize);
+            }
+            
+            iReadyFile.close();
+        }
+        else if(fs::is_directory(path))
+        {
+            FileInfo fileInfo;
+            memset(&fileInfo, '\0', sizeof(fileInfo));
+            fileInfo.bFType = FT_DIR;
+            fileInfo.ullFSize = 0;
+            strncpy(fileInfo.szFPath, rstrSource.c_str(), rstrSource.length());
+            strncpy(&fileInfo.szFPath[0] + rstrSource.length(), "\0", 1); 
+            //写入头部信息
+            rofArchiveFile.write((char*)&fileInfo,sizeof(FileInfo));
         }
         else
         {
-            //如果文件大小小于缓冲区大小
-            iReadyFile.read(szBuff, CCustomParamManager::Instance().GetBuffSize());
-            uint32_t dwSize = iReadyFile.gcount();
-            rofArchiveFile.write(szBuff, dwSize);
+            //DO NOT HANDLE
         }
-        
-        iReadyFile.close();
+        return 0;
     }
-    else if(fs::is_directory(path))
+    catch(...)
     {
-        FileInfo fileInfo;
-        memset(&fileInfo, '\0', sizeof(fileInfo));
-        fileInfo.bFType = FT_DIR;
-        fileInfo.ullFSize = 0;
-        strncpy(fileInfo.szFPath, rstrSource.c_str(), rstrSource.length());
-        strncpy(&fileInfo.szFPath[0] + rstrSource.length(), "\0", 1); 
-        //写入头部信息
-        rofArchiveFile.write((char*)&fileInfo,sizeof(FileInfo));
+        return 1;
     }
-    else
-    {
-        //DO NOT HANDLE
-    }
-    return 0;
+    
 }
 
 int CFileUtilBase::DearchiveOneFileOrDir(std::ifstream& rifSource, const std::string& rstrOut)

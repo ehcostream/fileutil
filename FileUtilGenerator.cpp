@@ -16,19 +16,27 @@ CFileUtilBase* CFileUtilGenerator::CreateUncompresser(const std::string& rstrInF
 	//兼容模式
 	CVersionInfo stVersionInfo(GetFileUtilVer(rstrInFile));
 	std::cout << "file version:" << stVersionInfo.Print() << std::endl;
-	if(stVersionInfo.GetMinorVer() == Version::MINOR_VERSION)
-	{
-		//使用当前最新的
-		return new CFileUncompresser();
-	}
-	else if(stVersionInfo.GetMinorVer() == 50)
-	{
-		return nullptr;/*new version*/
-	}
-	else
+	if(stVersionInfo == CVersionInfo(0,0,0))
 	{
 		return nullptr;
 	}
+	else
+	{
+		if(stVersionInfo.GetMinorVer() == Version::MINOR_VERSION)
+		{
+			//使用当前最新的
+			return new CFileUncompresser();
+		}
+		else if(stVersionInfo.GetMinorVer() == 50)
+		{
+			return nullptr;/*new version*/
+		}
+		else
+		{
+			return nullptr;
+		}
+	}
+	
 }
 
 //创建加密工具
