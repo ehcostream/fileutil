@@ -39,14 +39,24 @@ int CFileUtil4Zlib::Compress(const std::vector<std::string>& rvecFiles, const st
     std::string strTargetFile;
 
     auto file = rvecFiles.front();
+    for(const auto& file : rvecFiles)
+    {
+        std::cout << file << std::endl;
+    }
     if(rvecFiles.size() > 1)
     {
         //如果有多个文件/夹，以第一个文件的父目录名称为文件名建立压缩文件
-        strTargetFile = fs::path(fs::absolute(file)).parent_path().filename().string();
+        fs::path ptmp(fs::absolute(file));
+        if(std::string(&file.back()) == std::string("/") || std::string(&file.back()) == std::string("\\"))
+        {
+            file.pop_back();
+        }
+        strTargetFile = fs::canonical(fs::absolute(file).parent_path()).filename().string();
     }
     else
     {
         fs::path path(file);
+        std::cout << "--->" << file << std::endl;
         if(fs::is_regular_file(path))
         {
             strTargetFile = path.stem().string();
@@ -78,22 +88,33 @@ int CFileUtil4Zlib::Compress(const std::vector<std::string>& rvecFiles, const st
     {
         //调用zlib进行压缩
         std::string strTmpFile;
-        GetTmpMiddleFile(strTmpFile, true);
-        std::unique_ptr< std::ostream> osp = std::unique_ptr< std::ostream >(new zio::ofstream(strTmpFile, CCustomParamManager::Instance().GetBuffSize()));
-        std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(strMidFile));
-        zio::ofstream* ofsp = static_cast<zio::ofstream*>(osp.get());
-        //附加文件头信息
-        
-        CatStream(*ifsp, *osp);
-        ifsp->close();
+        do
+        {
+            GetTmpMiddleFile(strTmpFile, true);
+            std::unique_ptr< std::ostream> osp = std::unique_ptr< std::ostream >(new zio::ofstream(strTmpFile, CCustomParamManager::Instance().GetBuffSize()));
+            std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(strMidFile));
+            zio::ofstream* ofsp = static_cast<zio::ofstream*>(osp.get());
+            //附加文件头信息
+            
+            CatStream(*ifsp, *osp);
+            ifsp->close();
+            
+        }while(false);
         std::ifstream in(strTmpFile, std::ifstream::binary);
         std::ofstream out(outFilePath.string(), std::ofstream::binary);
         CFileUtilHead::Attach(out, outFilePath.string());
         CatStream(in, out);
+
+        in.close();
+        out.close();
         //删除临时文件
+        std::cout << "remove strMidFile " << strMidFile << std::endl;
         fs::remove(fs::path(strMidFile));
+        std::cout << "remove strTmpFile " << strTmpFile << std::endl;
         fs::remove(fs::path(strTmpFile));
+        
     }
+    
 	return 0;
 }
 
@@ -106,7 +127,7 @@ int CFileUtil4Zlib::Uncompress(const std::string& rstrIn, const std::string& rst
     //文件进行解压缩
     std::unique_ptr< std::ofstream > ofsp = std::unique_ptr< std::ofstream >(new strict_fstream::ofstream(strMidFile));
     std::ostream * osp = ofsp.get();
-    std::cout << __FUNCTION__ << "," << CCustomParamManager::Instance().GetBuffSize() << "，" << rstrIn << std::endl;
+    std::cout << __FUNCTION__ << "," << CCustomParamManager::Instance().GetBuffSize() << "," << rstrIn << std::endl;
     
     std::unique_ptr< std::istream > isp = std::unique_ptr< std::istream >(new zio::ifstream(rstrIn, CCustomParamManager::Instance().GetBuffSize()));
     zio::ifstream* ifsp = static_cast<zio::ifstream*>(isp.get());

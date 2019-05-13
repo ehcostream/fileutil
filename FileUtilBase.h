@@ -24,7 +24,7 @@ protected:
     int Dearchive(const std::string& rstrArchiveFile, const std::string& rstrOut);
 
     //归档一个块文件
-    int ArchiveOneFileOrDir(const std::string& rstrSource, std::ofstream& rofArchiveFile);
+    int ArchiveOneFileOrDir(const std::string& rstrSource, const std::string& rstrRoot, std::ofstream& rofArchiveFile);
 
     //解档一个块文件
     int DearchiveOneFileOrDir(std::ifstream& rifSource, const std::string& rstrOut);
@@ -37,5 +37,9 @@ protected:
 
     //合并多个文件为一个文件
     void CombainFiles(const std::vector<std::string>& rVecInFiles, const std::string& rstrOutFile);
+
+private:
+    //构建一个以rstrRoot为根的目录路径
+    void RebuildPath(const std::string& rstrSource, const std::string& rstrRoot, std::string& rstrTarget);
 
 };

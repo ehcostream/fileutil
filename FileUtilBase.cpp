@@ -7,6 +7,7 @@ bool CFileUtilBase::CatStream(std::istream& ris, std::ostream& ros)
     char* szBuff = new char[CCustomParamManager::Instance().GetBuffSize()];
     if(szBuff)
     {
+        std::cout << ris.peek() << std::endl;
         while (true && ris.peek() != EOF)
         {
             ris.read(szBuff, CCustomParamManager::Instance().GetBuffSize());
@@ -40,10 +41,10 @@ int CFileUtilBase::Archive(const std::vector<std::string>& rVecFile, const std::
     {
         std::ofstream oArcFile(rstrOut, std::ofstream::binary);
         //生成将要归档的文件
-        std::cout << "out " << rstrOut << "open state " << oArcFile.is_open() << std::endl;
+        std::cout << "out " << rstrOut << ", open state " << oArcFile.is_open() << std::endl;
         for(const auto& rFile : rVecFile)
         {
-            std::cout << rFile << std::endl;
+
             fs::path path(rFile);
             if(!fs::exists(path))
             {
@@ -57,16 +58,23 @@ int CFileUtilBase::Archive(const std::vector<std::string>& rVecFile, const std::
                     
                     if(fs::is_directory(path))
                     {
+                        auto tmp = rFile;
+                        if(std::string(&tmp.back()) == std::string("/") || std::string(&tmp.back()) == std::string("\\"))
+                        {
+                            tmp.pop_back();
+                        }
+                        std::string strRoot = fs::path(tmp).filename().string();
                         for(fs::recursive_directory_iterator dir_end, dir(rFile); dir != dir_end; ++dir)
                         {
-                            ArchiveOneFileOrDir(dir->path().string(), oArcFile);
+                            ArchiveOneFileOrDir(dir->path().string(), strRoot, oArcFile);
                         }
                         
                     }
                     else if(fs::is_regular_file(path))
                     {
-                        std::cout << "File--" << path.string() << std::endl;
-                        ArchiveOneFileOrDir(path.string(), oArcFile); 
+                        std::cout << "File-->" << path.filename().string() << std::endl;
+
+                        ArchiveOneFileOrDir(path.string(), path.filename().string(), oArcFile); 
                     }
                     
                 }
@@ -125,11 +133,11 @@ int CFileUtilBase::Dearchive(const std::string& rstrArchivedFile, const std::str
 }
 
 
-int CFileUtilBase::ArchiveOneFileOrDir(const std::string& rstrSource, std::ofstream& rofArchiveFile)
+int CFileUtilBase::ArchiveOneFileOrDir(const std::string& rstrSource, const std::string& rstrRoot, std::ofstream& rofArchiveFile)
 {
     assert(CCustomParamManager::Instance().GetBuffSize() != 0);
-    std::cout << rstrSource << std::endl;
     fs::path path(rstrSource);
+    //std::cout <<  ", " << path.parent_path() << "," << fs::canonical(fs::absolute(path)) << std::endl;
     if(fs::is_regular_file(path))
     {
         std::ifstream iReadyFile(rstrSource, std::ifstream::binary);
@@ -145,8 +153,13 @@ int CFileUtilBase::ArchiveOneFileOrDir(const std::string& rstrSource, std::ofstr
         memset(&fileInfo, '\0', sizeof(fileInfo));
         fileInfo.bFType = FT_FILE;
         fileInfo.ullFSize = length;
-        strncpy(fileInfo.szFPath, rstrSource.c_str(), rstrSource.length());
-        strncpy(&fileInfo.szFPath[0] + rstrSource.length(), "\0", 1); 
+
+        std::string strSource = path.string();
+        std::string strTarget;
+        RebuildPath(strSource, rstrRoot, strTarget);
+        strncpy(fileInfo.szFPath, strTarget.c_str(), strTarget.length());
+        strncpy(&fileInfo.szFPath[0] + strTarget.length(), "\0", 1); 
+        
         //写入头部信息
         rofArchiveFile.write((char*)&fileInfo,sizeof(FileInfo));
 
@@ -210,7 +223,7 @@ int CFileUtilBase::DearchiveOneFileOrDir(std::ifstream& rifSource, const std::st
     if(bType == FT_DIR)
     {
         fs::path dirPath = fs::path(rstrOut) / stFileInfo.szFPath;
-        std::cout << dirPath.string() << std::endl;
+        std::cout << "dir :" << dirPath.string() << std::endl;
         fs::create_directories(dirPath);
     }
     else if(bType == FT_FILE)
@@ -230,7 +243,6 @@ int CFileUtilBase::DearchiveOneFileOrDir(std::ifstream& rifSource, const std::st
         std::string strResultPath = filePath.string();
 
         std::ofstream oFile(strResultPath, std::ofstream::out | std::ofstream::binary);
-        std::cout << oFile.is_open() << std::endl;
         
         if(stFileInfo.ullFSize != 0)
         {
@@ -264,7 +276,7 @@ int CFileUtilBase::DearchiveOneFileOrDir(std::ifstream& rifSource, const std::st
             {
                 std::unique_ptr<char> pszBuff = std::unique_ptr<char>(new char[stFileInfo.ullFSize]);
                 char* szBuff = pszBuff.get();
-                std::cout << stFileInfo.ullFSize << std::endl;
+                std::cout << "file size :" << stFileInfo.ullFSize << std::endl;
                 rifSource.read(szBuff, stFileInfo.ullFSize);
                 oFile.write(szBuff, stFileInfo.ullFSize);
             }
@@ -365,4 +377,26 @@ void CFileUtilBase::CombainFiles(const std::vector<std::string>& rVecInFiles, co
         isp->close();
     }
     osp->close();
+}
+
+void CFileUtilBase::RebuildPath(const std::string& rstrSource, const std::string& rstrRoot, std::string& rstrTarget)
+{
+    rstrTarget = rstrSource;
+    size_t pos = rstrTarget.find(rstrRoot);
+    if(pos != std::string::npos)
+    {
+        if(pos > 1)
+        {
+            rstrTarget.erase(0, pos - 1);
+            rstrTarget = (fs::path(".") / rstrTarget).string();
+        }
+        else
+        {
+            std::cout << "file path is not invalid" << std::endl;
+        }
+    }
+    else
+    {
+        std::cout << "'" << rstrTarget << "' is not in the string '" << rstrSource << "'" << std::endl;
+    }
 }
