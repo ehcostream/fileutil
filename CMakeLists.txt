@@ -28,7 +28,7 @@ include_directories(./zlibwrapper ${Boost_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR})
 
 add_subdirectory(zlibwrapper)
 
-add_executable(fz ${SRC_FILES})
+add_library(fz SHARED ${SRC_FILES})
 
 if(WIN32)
 	target_link_libraries(fz wsock32 ws2_32)
