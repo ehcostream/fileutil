@@ -30,6 +30,8 @@ add_subdirectory(src/zlibwrapper)
 
 add_library(fz SHARED ${SRC_FILES})
 
+#add_library(fzstaic STATIC ${SRC_FILES})
+
 if(WIN32)
 	target_link_libraries(fz wsock32 ws2_32)
 	target_link_libraries(fz 
@@ -44,3 +46,16 @@ else ()
 endif(WIN32)
 
 set_target_properties(fz PROPERTIES DEFINE_SYMBOL FILEUTIL_DLL)
+
+set_target_properties(fz PROPERTIES VERSION 1.2 SOVERSION 1)
+
+install(TARGETS fz LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
+
+install(FILES src/FileUtilSdk.h
+			  src/fconf.h 
+			  src/FileUtilGeneratorBase.h 
+			  src/FileUtilBase.h 
+			  src/Uncopyable.h
+			  src/FileUtilGeneratorInterface.h
+			  src/FileUtil.h 
+			  DESTINATION include/fz)

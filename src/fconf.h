@@ -1,4 +1,4 @@
-#ifndef  __FCONF_H__
+#ifndef __FCONF_H__
 #define __FCONF_H__
 
 #ifdef FILEUTIL_DLL

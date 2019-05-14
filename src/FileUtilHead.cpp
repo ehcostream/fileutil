@@ -107,7 +107,6 @@ std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError, FileHead& rst
 		rstIn.read((char*)&rstHead, sizeof(FileHead));
 		std::ostringstream oss;
 		oss << std::string(rstHead.szVersion) << std::string(rstHead.szKey) << rstHead.dwTimeStamp << std::string(rstHead.szExt) << std::string(rstHead.szFilename);
-		std::cout << rstHead.szVersion << "," << rstHead.szExt << "," << rstHead.szFilename << std::endl;
 		std::string strSign(MD5::Encode(oss.str()));
 		if(std::string(rstHead.szSign) != strSign)
 		{

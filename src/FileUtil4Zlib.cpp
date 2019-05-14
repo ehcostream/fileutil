@@ -138,9 +138,7 @@ int CFileUtil4Zlib::Compress(const std::vector<std::string>& rvecFiles, const st
             in.close();
             out.close();
             //删除临时文件
-            std::cout << "remove strMidFile " << strMidFile << std::endl;
             fs::remove(fs::path(strMidFile));
-            std::cout << "remove strTmpFile " << strTmpFile << std::endl;
             fs::remove(fs::path(strTmpFile));
             
         }

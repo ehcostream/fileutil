@@ -23,6 +23,7 @@ public:
 	//创建解密工具
 	virtual CFileUtilBase* CreateDecoder(const std::string& rstrInFile) override;
 
+	//设置CPU核数和缓冲区大小
 	virtual void Set(uint32_t dwCpuCore, uint64_t ullBuffSize);
 
 protected:
