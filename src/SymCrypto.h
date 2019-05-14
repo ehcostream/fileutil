@@ -1,5 +1,5 @@
 #pragma once
-#include "Zlibutil.h"
+#include "FileUtil.h"
 class CSymCrypto
 {
 protected:

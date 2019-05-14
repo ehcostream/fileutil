@@ -1,6 +1,9 @@
 #pragma once
+#include <vector>
+#include <string>
 #include "FileUtilBase.h"
 
+class ThreadParam;
 class CFileUtil4Zlib : public CFileUtilBase
 {
 public:

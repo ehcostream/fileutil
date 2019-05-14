@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 SET(EXECUTABLE_OUTPUT_PATH bin)
 
-file(GLOB SRC_FILES *.cpp *.h)
-project(zlibutil)
+file(GLOB SRC_FILES src/*.cpp src/*.h)
+project(fileutil/src)
 
 if(WIN32)
 #you can set your zlib full path
@@ -24,9 +24,9 @@ find_package(ZLIB REQUIRED)
 
 find_package(Boost COMPONENTS system filesystem thread program_options REQUIRED)
 
-include_directories(./zlibwrapper ${Boost_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR})
+include_directories(src/zlibwrapper ${Boost_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR})
 
-add_subdirectory(zlibwrapper)
+add_subdirectory(src/zlibwrapper)
 
 add_library(fz SHARED ${SRC_FILES})
 
@@ -42,3 +42,5 @@ if(WIN32)
 else ()
 	target_link_libraries(fz zlibwrapper ${ZLIB_LIBRARY} ${Boost_LIBRARIES})
 endif(WIN32)
+
+set_target_properties(fz PROPERTIES DEFINE_SYMBOL FILEUTIL_DLL)

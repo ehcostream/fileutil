@@ -1,7 +1,9 @@
 #include "FileUtilGeneratorAsync.h"
+#include "ThreadPool.h"
+#include "VersionInfo.h"
+
 #define ASYNC
 #include "FileUtilities.h"
-#include "ThreadPool.h"
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
 #include <windows.h>

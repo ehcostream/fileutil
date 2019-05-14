@@ -1,6 +1,5 @@
 #include "FileUtilGenerator.h"
-#include "Singleton.h"
-#include "FileUtilGeneratorBase.h"
+#include "VersionInfo.h"
 
 #define SYNC
 #include "FileUtilities.h"

@@ -1,5 +1,7 @@
-#pragma once 
-#include "Zlibutil.h"
+#ifndef __FILE_UTIL_BASE__
+#define __FILE_UTIL_BASE__
+
+#include "FileUtil.h"
 class CFileUtilBase
 {
 public:
@@ -43,3 +45,5 @@ private:
     void RebuildPath(const std::string& rstrSource, const std::string& rstrRoot, std::string& rstrTarget);
 
 };
+
+#endif

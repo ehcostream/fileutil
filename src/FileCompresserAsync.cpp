@@ -1,4 +1,5 @@
 #include "FileCompresserAsync.h"
+#include "ThreadPool.h"
 
 int CFileCompresserAsync::Execute(const std::vector<std::string>& rvecFiles, const std::string& rstrOutDir, void* pExParam, std::string& rstrOutFile)
 {

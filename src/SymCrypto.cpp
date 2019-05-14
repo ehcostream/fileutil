@@ -1,5 +1,5 @@
 #include "SymCrypto.h"
-
+#include "FileUtilHead.h"
 int CSymCrypto::SymEncode(const std::string& rstrSource, const std::string& rstrOut, const std::string& rstrKey, bool bEncode, std::string& rstrOutFile)
 {
     //判断输出文件夹是否存在如果不存在，则创建

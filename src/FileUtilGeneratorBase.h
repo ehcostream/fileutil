@@ -3,7 +3,8 @@
 
 #include "Uncopyable.h"
 #include "FileUtilGeneratorInterface.h"
-#include "VersionInfo.h"
+
+class CVersionInfo;
 
 class CFileUtilGeneratorBase 
 	: public CUncopyable, 
@@ -22,7 +23,7 @@ public:
 	//创建解密工具
 	virtual CFileUtilBase* CreateDecoder(const std::string& rstrInFile) override;
 
-	void Set(uint32_t dwCpuCore, uint64_t ullBuffSize);
+	virtual void Set(uint32_t dwCpuCore, uint64_t ullBuffSize);
 
 protected:
 	virtual CVersionInfo GetFileUtilVer(const std::string& rstrFile);

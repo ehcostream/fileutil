@@ -1,6 +1,6 @@
 # README.md
 ## 功能介绍
-zlibutil是一款基于zlib的deflate压缩算法的c++工具库，此外，还提供了加密/解密的功能。
+filetuil是一款基于zlib的deflate压缩算法的c++工具库，此外，还提供了加密/解密的功能。
 
 `主要功能如下`
 

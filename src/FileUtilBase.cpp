@@ -1,6 +1,26 @@
 #include "FileUtilBase.h"
 #include "FileUtilHead.h"
+#include "CustomParamManager.h"
+#include "strict_fstream.cpp"
 
+//进行归档的文件的头部信息
+enum FileType
+{
+    FT_UNKNOW = 0x00,
+    FT_FILE = 0x01,
+    FT_DIR = 0x02,
+    FT_MAX
+};
+
+struct FileInfo
+{
+    //文件类型
+    char bFType;
+    //文件大小，满足文件大小大于4G的情况
+    uint64_t ullFSize;
+    //文件路径
+    char szFPath[255];
+};
 
 bool CFileUtilBase::CatStream(std::istream& ris, std::ostream& ros)
 {

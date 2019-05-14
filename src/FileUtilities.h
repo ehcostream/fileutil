@@ -4,6 +4,7 @@
 	#include "FileUncompresser.h"
 	#include "FileEncoder.h"
 	#include "FileDecoder.h"
+	
 #endif
 #ifdef ASYNC
 	#include "FileCompresserAsync.h"

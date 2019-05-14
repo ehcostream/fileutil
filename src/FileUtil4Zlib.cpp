@@ -1,4 +1,15 @@
 #include "FileUtil4Zlib.h"
+#include "zio.cpp"
+#include "FileUtilHead.h"
+#include "CustomParamManager.h"
+//线程参数
+struct ThreadParam
+{
+    int threadSeq;
+    uint64_t ullBuffSize;
+    std::string strSource;
+    std::string strOutFile;
+};
 
 int CFileUtil4Zlib::Compress(const std::vector<std::string>& rvecFiles, const std::string& rstrOutDir, std::string& rstrOutFile)
 {

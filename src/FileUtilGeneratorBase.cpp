@@ -1,6 +1,8 @@
 #include "FileUtilGeneratorBase.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
+
+#include "VersionInfo.h"
 #include "FileUtilHead.h"
 #include "CustomParamManager.h"
 
