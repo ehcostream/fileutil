@@ -1,8 +1,11 @@
 #ifndef __FILE_UTIL_SDK_H__
 #define __FILE_UTIL_SDK_H__
+
+#define FILEUTIL_INTERNAL
 #include "fconf.h"
 #include "FileUtilGeneratorBase.h"
 #include "FileUtilBase.h"
+
 namespace futil
 {
 

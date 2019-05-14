@@ -49,7 +49,7 @@ set_target_properties(fz PROPERTIES DEFINE_SYMBOL FILEUTIL_DLL)
 
 set_target_properties(fz PROPERTIES VERSION 1.2 SOVERSION 1)
 
-install(TARGETS fz LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
+install(TARGETS fz LIBRARY DESTINATION lib RUNTIME DESTINATION lib ARCHIVE DESTINATION lib)
 
 install(FILES src/FileUtilSdk.h
 			  src/fconf.h 
