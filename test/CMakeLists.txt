@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.10)
 file(GLOB SRC_FILES *.cpp *.h)
 project(test)
 
@@ -34,7 +33,6 @@ if(WIN32)
 	${Boost_LIBRARIES}/libboost_program_options-mgw81-mt-s-x64-1_70.a
 	${ZLIB_LIBRARY}/libzlibstatic.a
 	C:/fz/lib/libfz.dll.a
-	C:/fz/lib/libfz.dll
 	)
 else ()
 	target_link_libraries(test /usr/local/lib/libfz.so ${ZLIB_LIBRARY} ${Boost_LIBRARIES})
