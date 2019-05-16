@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 SET(EXECUTABLE_OUTPUT_PATH bin)
 
-file(GLOB SRC_FILES src/*.cpp src/*.h)
-project(fileutil/src)
+file(GLOB SRC_FILES *.h *.cpp)
+project(server)
 
 if(NOT MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O2 -Wall -Werror -z defs -mcmodel=medium")
@@ -27,7 +27,7 @@ set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:gRPC::grpc_cpp_plugin>)
 
 
 # Proto file
-get_filename_component(hw_proto "./protos/fileutil.proto" ABSOLUTE)
+get_filename_component(hw_proto "../protos/fileutil.proto" ABSOLUTE)
 get_filename_component(hw_proto_path "${hw_proto}" PATH)
 
 # Generated sources
@@ -64,43 +64,20 @@ find_package(ZLIB REQUIRED)
 
 find_package(Boost COMPONENTS system filesystem thread program_options REQUIRED)
 
-include_directories(src/zlibwrapper ${Boost_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR})
-
-add_subdirectory(src/zlibwrapper)
-
-add_library(fz SHARED ${SRC_FILES} ${hw_proto_srcs} ${hw_grpc_srcs})
-
-#add_library(fzstaic STATIC ${SRC_FILES})
+add_executable(server ${SRC_FILES} ${hw_proto_srcs} ${hw_grpc_srcs})
 
 if(WIN32)
-	target_link_libraries(fz wsock32 ws2_32)
-	target_link_libraries(fz 
-	zlibwrapper 
+	target_link_libraries(server wsock32 ws2_32)
+	target_link_libraries(server 
 	${Boost_LIBRARIES}/libboost_system-mgw81-mt-s-x64-1_70.a 
 	${Boost_LIBRARIES}/libboost_filesystem-mgw81-mt-s-x64-1_70.a 
 	${Boost_LIBRARIES}/libboost_thread-mgw81-mt-s-x64-1_70.a 
 	${Boost_LIBRARIES}/libboost_program_options-mgw81-mt-s-x64-1_70.a
 	${ZLIB_LIBRARY}/libzlibstatic.a)
 else ()
-	target_link_libraries(fz 
-						  zlibwrapper 
+	target_link_libraries(server 
 						  ${ZLIB_LIBRARY} 
 						  ${Boost_LIBRARIES}
 						  ${_GRPC_GRPCPP_UNSECURE}
 						  ${_PROTOBUF_LIBPROTOBUF})
 endif(WIN32)
-
-set_target_properties(fz PROPERTIES DEFINE_SYMBOL FILEUTIL_DLL)
-
-set_target_properties(fz PROPERTIES VERSION 1.2 SOVERSION 1)
-
-install(TARGETS fz LIBRARY DESTINATION lib RUNTIME DESTINATION lib ARCHIVE DESTINATION lib)
-
-install(FILES src/FileUtilSdk.h
-			  src/fconf.h 
-			  src/FileUtilGeneratorBase.h 
-			  src/FileUtilBase.h 
-			  src/Uncopyable.h
-			  src/FileUtilGeneratorInterface.h
-			  src/FileUtil.h 
-			  DESTINATION include/fz)

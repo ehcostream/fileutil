@@ -2,6 +2,18 @@
 #include "zio.cpp"
 #include "FileUtilHead.h"
 #include "CustomParamManager.h"
+
+#include <grpcpp/grpcpp.h>
+#include "fileutil.grpc.pb.h"
+
+
+using grpc::Channel;
+using grpc::ClientContext;
+using grpc::Status;
+using fileutil::CompressReq;
+using fileutil::CompressRes;
+using fileutil::CompressService;
+
 //线程参数
 struct ThreadParam
 {
@@ -10,6 +22,7 @@ struct ThreadParam
     std::string strSource;
     std::string strOutFile;
 };
+
 
 int CFileUtil4Zlib::Compress(const std::vector<std::string>& rvecFiles, const std::string& rstrOutDir, std::string& rstrOutFile)
 {
@@ -116,7 +129,6 @@ int CFileUtil4Zlib::Compress(const std::vector<std::string>& rvecFiles, const st
                 GetTmpMiddleFile(strTmpFile, true);
                 std::unique_ptr< std::ostream> osp = std::unique_ptr< std::ostream >(new zio::ofstream(strTmpFile, CCustomParamManager::Instance().GetBuffSize()));
                 std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(strMidFile));
-                zio::ofstream* ofsp = static_cast<zio::ofstream*>(osp.get());
                 //附加文件头信息
                 try
                 {
@@ -218,7 +230,7 @@ int CFileUtil4Zlib::CompressWithMT(const std::string rstrAchiveFile, const std::
     do
     {
         
-        CutFileIntoPieces(rstrAchiveFile, vecFiles, dwThreadCnt);
+        nError = CutFileIntoPieces(rstrAchiveFile, vecFiles, dwThreadCnt);
         if(vecFiles.size() != dwThreadCnt)
         {
             std::cout << "vecfiles size invalid:" << vecFiles.size() << std::endl;;
@@ -281,7 +293,7 @@ int CFileUtil4Zlib::CompressWithMT(const std::string rstrAchiveFile, const std::
         fs::remove(fs::path(file));
     }
 
-    return 0;
+    return nError;
 }
 
 void CFileUtil4Zlib::CompressAFile(ThreadParam& stParam)

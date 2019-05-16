@@ -359,37 +359,45 @@ void CFileUtilBase::GetTmpMiddleFile(std::string& rstrAchiveFile, bool bAchive, 
 
 int CFileUtilBase::CutFileIntoPieces(const std::string& rstrIn, std::vector<std::string>& rVecOutFiles, uint32_t dwBlcok)
 {
-    assert(dwBlcok > 1);
-    std::cout << "CutFile->" << rstrIn << std::endl;
-    std::ifstream inAchiFile(rstrIn, std::ifstream::binary);
-    if(!inAchiFile.is_open())
-    {
-        return 1;
-    }
-    inAchiFile.seekg(0, inAchiFile.end);
-    uint64_t ullTotalFileSize = inAchiFile.tellg();
-    uint64_t ullSizeAvg = floor(ullTotalFileSize / dwBlcok);
-    uint64_t ullLastPartSize = ullTotalFileSize - ullSizeAvg * (dwBlcok - 1);
-    //恢复文件指针
-    inAchiFile.seekg(0, inAchiFile.beg);
-    std::cout << ullTotalFileSize << std::endl;
-    for (uint32_t dwCurrent = 0; dwCurrent < dwBlcok && inAchiFile.peek() != EOF; ++dwCurrent)
-    {
-        std::string strOutFile;
-        GetTmpMiddleFile(strOutFile, true, 1);
-        std::ofstream outFile(strOutFile, std::ofstream::binary);
-        char bReadByte;
-        bool bLast = (dwCurrent == dwBlcok -1);
-        for (uint64_t ullReadBytes = 0; ullReadBytes < (bLast ? ullLastPartSize : ullSizeAvg); ++ullReadBytes)
+    try
+    {   
+        assert(dwBlcok > 1);
+        std::cout << "CutFile->" << rstrIn << std::endl;
+        std::ifstream inAchiFile(rstrIn, std::ifstream::binary);
+        if(!inAchiFile.is_open())
         {
-            inAchiFile.read(&bReadByte, sizeof(char));
-            outFile.write(&bReadByte, sizeof(char));
+            return 1;
         }
-        outFile.close();
-        rVecOutFiles.emplace_back(strOutFile);
+        inAchiFile.seekg(0, inAchiFile.end);
+        uint64_t ullTotalFileSize = inAchiFile.tellg();
+        uint64_t ullSizeAvg = floor(ullTotalFileSize / dwBlcok);
+        uint64_t ullLastPartSize = ullTotalFileSize - ullSizeAvg * (dwBlcok - 1);
+        //恢复文件指针
+        inAchiFile.seekg(0, inAchiFile.beg);
+        std::cout << ullTotalFileSize << std::endl;
+        for (uint32_t dwCurrent = 0; dwCurrent < dwBlcok && inAchiFile.peek() != EOF; ++dwCurrent)
+        {
+            std::string strOutFile;
+            GetTmpMiddleFile(strOutFile, true, 1);
+            std::ofstream outFile(strOutFile, std::ofstream::binary);
+            char bReadByte;
+            bool bLast = (dwCurrent == dwBlcok -1);
+            for (uint64_t ullReadBytes = 0; ullReadBytes < (bLast ? ullLastPartSize : ullSizeAvg); ++ullReadBytes)
+            {
+                inAchiFile.read(&bReadByte, sizeof(char));
+                outFile.write(&bReadByte, sizeof(char));
+            }
+            outFile.close();
+            rVecOutFiles.emplace_back(strOutFile);
+        }
+        inAchiFile.close();
+        return 0;
     }
-    inAchiFile.close();
-    return 0;
+    catch(...)
+    {
+        return 99;
+    }
+   
 }
 
 void CFileUtilBase::CombainFiles(const std::vector<std::string>& rVecInFiles, const std::string& rstrOutFile)
