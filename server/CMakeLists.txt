@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-SET(EXECUTABLE_OUTPUT_PATH bin)
+SET(EXECUTABLE_OUTPUT_PATH .)
 
 file(GLOB SRC_FILES *.h *.cpp)
 project(server)

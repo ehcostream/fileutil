@@ -9,12 +9,12 @@ public:
 		m_ullBuffSize = ullBuffSize;
 	}
 
-	uint32_t GetCpuCore()
+	inline uint32_t GetCpuCore()
 	{
 		return m_dwCpuCore;
 	}
 
-	uint64_t GetBuffSize()
+	inline uint64_t GetBuffSize()
 	{
 		return m_ullBuffSize;
 	}

@@ -8,15 +8,16 @@ int main()
 	CFileUtilGeneratorBase* base = futil::CreateFactory(0);
 	CFileUtilBase* compresser = base->CreateCompresser();
 	std::vector<std::string> files;
-	files.emplace_back("./Makefile");
+	files.emplace_back("./CMakeFiles");
 	std::string strOutFile;
 	compresser->Execute(files, ".", nullptr, strOutFile);
 
-	base = futil::CreateFactory(1);
-	compresser = base->CreateCompresser();
-	files.clear();
-	files.emplace_back("./CMakeCache.txt");
-	compresser->Execute(files, ".", nullptr, strOutFile);
-	std::cout << strOutFile << std::endl;
-	futil::WaitAsync();
+	// compress with async mode
+	// base = futil::CreateFactory(1);
+	// compresser = base->CreateCompresser();
+	// files.clear();
+	// files.emplace_back("./CMakeCache.txt");
+	// compresser->Execute(files, ".", nullptr, strOutFile);
+	// std::cout << strOutFile << std::endl;
+	// futil::WaitAsync();
 }

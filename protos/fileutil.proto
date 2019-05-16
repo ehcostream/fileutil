@@ -8,12 +8,12 @@ service CompressService
 
 message CompressReq
 {
-	string source = 1;
+	bytes source = 1;
 }
 
 message CompressRes
 {
-	string compressed = 1;
+	bytes compressed = 1;
 }
 
 service UncompressService
@@ -23,10 +23,10 @@ service UncompressService
 
 message UncompressReq
 {
-	string source = 1;
+	bytes compressed = 1;
 }
 
 message UncompressRes
 {
-	string uncompressed = 1;
+	bytes uncompressed = 1;
 }
