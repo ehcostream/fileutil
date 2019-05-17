@@ -159,7 +159,7 @@ int CFileUtilBase::ArchiveOneFileOrDir(const std::string& rstrSource, const std:
     {
         assert(CCustomParamManager::Instance().GetBuffSize() != 0);
         fs::path path(rstrSource);
-        //std::cout <<  ", " << path.parent_path() << "," << fs::canonical(fs::absolute(path)) << std::endl;
+        //std::cout << fs::canonical(fs::absolute(path)) << std::endl;
         if(fs::is_regular_file(path))
         {
             std::ifstream iReadyFile(rstrSource, std::ifstream::binary);
@@ -304,7 +304,6 @@ int CFileUtilBase::DearchiveOneFileOrDir(std::ifstream& rifSource, const std::st
             {
                 std::unique_ptr<char> pszBuff = std::unique_ptr<char>(new char[stFileInfo.ullFSize]);
                 char* szBuff = pszBuff.get();
-                std::cout << "file size :" << stFileInfo.ullFSize << std::endl;
                 rifSource.read(szBuff, stFileInfo.ullFSize);
                 oFile.write(szBuff, stFileInfo.ullFSize);
             }

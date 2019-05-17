@@ -14,6 +14,11 @@ using fileutil::CompressReq;
 using fileutil::CompressRes;
 using fileutil::CompressService;
 
+using fileutil::UncompressReq;
+using fileutil::UncompressRes;
+using fileutil::UncompressService;
+
+
 //线程参数
 struct ThreadParam
 {
@@ -257,10 +262,9 @@ int CFileUtil4Zlib::CompressWithGrpc(const std::vector<std::string>& rvecFiles, 
         {
             //调用rpc压缩服务进行压缩
 
-            ClientContext context;
+            std::unique_ptr<ClientContext> context = std::unique_ptr<ClientContext>(new ClientContext());
             std::cout << "start calling rpc" << std::endl;
-
-            auto stream = stub->s_compress(&context);
+            auto stream = stub->s_compress(context.get());
             std::cout << "call rpc compress" << std::endl;
             std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new std::ifstream(strMidFile, std::ifstream::binary));
             std::unique_ptr< std::ofstream > ofsp = std::unique_ptr< std::ofstream >(new std::ofstream(rstrOutFile, std::ofstream::binary));
@@ -279,18 +283,20 @@ int CFileUtil4Zlib::CompressWithGrpc(const std::vector<std::string>& rvecFiles, 
                     {
                         while(ifsp->peek() != EOF)
                         {
+                            
+                            spReq->clear_source();
+                            spRes->clear_compressed();
                             ifsp->read(szBuff, CCustomParamManager::Instance().GetBuffSize());
                             std::streamsize cnt = ifsp->gcount();
                             szBuff[cnt] = '\0';
                             std::cout << "cnt:" << cnt << std::endl;
-                            spReq->set_source(std::string(szBuff, cnt));
+                            spReq->set_source(szBuff, cnt);
                             std::cout << "spBuff length:" << spReq->source().length() << std::endl;
 
                             stream->Write(*spReq);
                             stream->Read(spRes.get());
-                            const std::string& rstrCompressed = spRes->compressed();
-                            std::cout << "compressed:" << rstrCompressed.length() << std::endl;
-                            ofsp->write(rstrCompressed.c_str(), rstrCompressed.length());
+                            std::cout << "compressed:" << spRes->compressed().length() << std::endl;
+                            ofsp->write(spRes->compressed().c_str(), spRes->compressed().length());
                         }
                         stream->WritesDone();
                         Status status = stream->Finish();
@@ -369,13 +375,94 @@ int CFileUtil4Zlib::Uncompress(const std::string& rstrIn, const std::string& rst
 
         //解档
         nError = Dearchive(strMidFile, rstrOutDir);
-        std::cout <<  nError << std::endl;
     }while(false);
     in.close();
     //删除临时文件
     fs::remove(fs::path(strMidFile));
     std::cout << __FUNCTION__ << ", end" << std::endl;
 	return nError;
+}
+
+int CFileUtil4Zlib::UncompressWithGrpc(const std::string& rstrIn, const std::string& rstrOutDirs)
+{
+    std::string strMidFile;
+    GetTmpMiddleFile(strMidFile, false);
+    assert(!strMidFile.empty());
+    std::cout << __FUNCTION__ << std::endl;
+
+    std::shared_ptr<Channel> channel = grpc::CreateChannel("0.0.0.0:8000", grpc::InsecureChannelCredentials());
+    std::unique_ptr<UncompressService::Stub> stub = std::unique_ptr<UncompressService::Stub>(UncompressService::NewStub(channel));
+
+    //文件进行解压缩
+    int nError = 0;
+    std::unique_ptr< std::ifstream > ifsp;
+    std::unique_ptr< std::ofstream > ofsp;
+    do
+    {
+        if(fs::is_directory(fs::path(rstrIn)))
+        {
+            std::cout << "file format is invalid" << std::endl;
+            nError = 1;
+            break;
+        }
+        //调用rpc进行解压缩
+        ClientContext context;
+        std::cout << "start calling rpc" << std::endl;
+        auto stream = stub->s_uncompress(&context);
+        std::cout << "call rpc uncompress" << std::endl;
+        //初始化s_uncompress调用参数
+        std::unique_ptr<UncompressReq> spReq = std::unique_ptr<UncompressReq>(new UncompressReq());
+        std::unique_ptr<UncompressRes> spRes = std::unique_ptr<UncompressRes>(new UncompressRes());
+
+        ifsp = std::unique_ptr< std::ifstream >(new std::ifstream(rstrIn));
+        //解压后的ar文件临时保存路径
+        ofsp = std::unique_ptr< std::ofstream >(new std::ofstream(strMidFile));
+
+
+        char* szBuff = new char[CCustomParamManager::Instance().GetBuffSize() + 1];
+        if(szBuff)
+        {
+            while(ifsp->peek() != EOF)
+            {
+                ifsp->read(szBuff, CCustomParamManager::Instance().GetBuffSize());
+                std::streamsize cnt = ifsp->gcount();
+                szBuff[cnt] = '\0';
+                std::cout << "cnt:" << cnt << std::endl;
+
+                spReq->set_compressed(szBuff, cnt);
+                std::cout << "compressed file length:" << cnt << std::endl;
+                stream->Write(*spReq);
+                stream->Read(spRes.get());
+
+                std::cout << "uncompressed file length:" << spRes->uncompressed().length() << std::endl;
+                ofsp->write(spRes->uncompressed().c_str(), spRes->uncompressed().length());
+
+            }
+            stream->WritesDone();
+            Status status = stream->Finish();
+            if(!status.ok())
+            {
+                std::cout << status.error_code() << ": " << status.error_message() << std::endl;
+            }
+        }
+        else
+        {
+            ifsp->close();
+            ofsp->close();
+            nError = 2;
+            break;
+        }
+        ifsp->close();
+        ofsp->close();
+        //解档
+        nError = Dearchive(strMidFile, rstrOutDirs);
+    }while(false);
+
+    
+    //删除临时文件
+    fs::remove(fs::path(strMidFile));
+    std::cout << __FUNCTION__ << ", end" << std::endl;
+    return nError;
 }
 
 int CFileUtil4Zlib::CompressWithMT(const std::string rstrAchiveFile, const std::string& rstrOutDir)

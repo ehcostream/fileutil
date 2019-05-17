@@ -8,9 +8,16 @@ int main()
 	CFileUtilGeneratorBase* base = futil::CreateFactory(0);
 	CFileUtilBase* compresser = base->CreateCompresser();
 	std::vector<std::string> files;
-	files.emplace_back("./CMakeFiles");
+	files.emplace_back("../../bld/CMakeFiles");
+	//files.emplace_back("./CMakeFiles");
 	std::string strOutFile;
 	compresser->Execute(files, ".", nullptr, strOutFile);
+	std::cout << strOutFile << std::endl;
+
+	CFileUtilBase* uncompresser = base->CreateUncompresser("./CMakeFiles.ar.zb");
+	files.clear();
+	files.emplace_back("./CMakeFiles.ar.zb");
+	uncompresser->Execute(files, "./tmp", nullptr, strOutFile);
 
 	// compress with async mode
 	// base = futil::CreateFactory(1);

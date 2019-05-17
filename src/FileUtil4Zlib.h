@@ -16,6 +16,8 @@ protected:
     int Uncompress(const std::string& rstrIn, const std::string& rstrOutDir);
 
     int CompressWithGrpc(const std::vector<std::string>& rVecFile, const std::string& rstrOutDir, std::string& rstrOutFile);
+
+    int UncompressWithGrpc(const std::string& rstrIn, const std::string& rstrOutDirs);
     
 private:
 	int CompressWithMT(const std::string rstrAchiveFile, const std::string& rstrOutDir);

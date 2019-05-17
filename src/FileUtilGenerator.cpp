@@ -17,7 +17,7 @@ CFileUtilBase* CFileUtilGenerator::CreateUncompresser(const std::string& rstrInF
 	std::cout << "file version:" << stVersionInfo.Print() << std::endl;
 	if(stVersionInfo == CVersionInfo(0,0,0))
 	{
-		return nullptr;
+		return new CFileUncompresser();
 	}
 	else
 	{
