@@ -175,6 +175,23 @@ int CFileUtil4Zlib::CompressWithGrpc(const std::vector<std::string>& rvecFiles, 
     std::unique_ptr<CompressService::Stub> stub = std::unique_ptr<CompressService::Stub>(CompressService::NewStub(channel));
     do
     {
+        if(fs::is_regular_file(rvecFiles.front()) && rvecFiles.size() == 1)
+        {
+            int nParseResult = 0;
+            std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(rvecFiles.front()));
+            std::istream * isp = ifsp.get();
+            FileHead stHead;
+            CFileUtilHead::Parse(*isp, nParseResult, stHead);
+            if(std::string(stHead.szExt) == std::string(".zb"))
+            {
+                ifsp->close();
+                //重复压缩
+                nError = 10;
+                break;
+            }
+            ifsp->close();
+        }
+
         //归档
         std::string strMidFile;
         GetTmpMiddleFile(strMidFile, true);
@@ -268,6 +285,8 @@ int CFileUtil4Zlib::CompressWithGrpc(const std::vector<std::string>& rvecFiles, 
             std::cout << "call rpc compress" << std::endl;
             std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new std::ifstream(strMidFile, std::ifstream::binary));
             std::unique_ptr< std::ofstream > ofsp = std::unique_ptr< std::ofstream >(new std::ofstream(rstrOutFile, std::ofstream::binary));
+            //为输出文件附加文件头
+            CFileUtilHead::Attach(*ofsp, rstrOutFile);
             do
             {
                 if(ifsp->is_open())
@@ -415,10 +434,29 @@ int CFileUtil4Zlib::UncompressWithGrpc(const std::string& rstrIn, const std::str
         std::unique_ptr<UncompressReq> spReq = std::unique_ptr<UncompressReq>(new UncompressReq());
         std::unique_ptr<UncompressRes> spRes = std::unique_ptr<UncompressRes>(new UncompressRes());
 
-        ifsp = std::unique_ptr< std::ifstream >(new std::ifstream(rstrIn));
+        ifsp = std::unique_ptr< std::ifstream >(new std::ifstream(rstrIn, std::ifstream::binary));
         //解压后的ar文件临时保存路径
-        ofsp = std::unique_ptr< std::ofstream >(new std::ofstream(strMidFile));
+        ofsp = std::unique_ptr< std::ofstream >(new std::ofstream(strMidFile, std::ofstream::binary));
 
+        if(fs::is_directory(fs::path(rstrIn)))
+        {
+            std::cout << "file format is invalid" << std::endl;
+            nError = 2;
+            break;   
+        }
+        FileHead stHead;
+        //检测文件是否有效
+        CFileUtilHead::Parse(*ifsp, nError, stHead);
+        if(nError != 0)
+        {
+            nError = 3;
+            break;
+        }
+        if(std::string(stHead.szExt) != std::string(".zb"))
+        {
+            nError = 4;
+            break;
+        }
 
         char* szBuff = new char[CCustomParamManager::Instance().GetBuffSize() + 1];
         if(szBuff)
