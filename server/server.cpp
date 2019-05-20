@@ -36,13 +36,15 @@ class CompressServiceImpl final
 		std::cout << __FUNCTION__ << std::endl;
 		std::unique_ptr<CompressReq> compressReq = std::unique_ptr<CompressReq>(new CompressReq());
 		Status status = Status::OK;
-		char* szBuff = new char[1 << 20];
+		uint32_t dwBuffSize = 1 << 20;
+		char* szBuff = new char[dwBuffSize];
+		uint64_t ullTotalCompressedSize = 0;
 		while(stream->Read(compressReq.get()))
 		{
-			//设置source上限为10M
+			//设置source上限为1M
 			if(compressReq->source().length() > (1 << 20))
 			{
-				//如果单次传输超过10M，返回错误，并取消本次压缩
+				//如果单次传输超过1M，返回错误，并取消本次压缩
 				status = Status::CANCELLED;
 				break;
 			}
@@ -50,7 +52,7 @@ class CompressServiceImpl final
 			{
 				
 				std::unique_ptr<CompressRes> compressRes = std::unique_ptr<CompressRes>(new CompressRes());
-				int compressLen = 0;
+				int compressLen = dwBuffSize;
 				std::cout << "start compressing" << std::endl;
 				memset(szBuff, '\0', 1 << 20);
 				std::cout << "source len:" << compressReq->source().length() << std::endl;
@@ -60,14 +62,15 @@ class CompressServiceImpl final
 				std::cout << "compress result:" << err << std::endl;			
 				std::cout << "finish compress" << std::endl;
 				std::cout << compressLen << ", " << compressReq->source().length() << std::endl;
+				ullTotalCompressedSize += compressLen;
 				compressRes->set_compressed(szBuff, compressLen);
 				std::cout << compressRes->compressed().length() << std::endl;
 				stream->Write(*compressRes);
 				std::cout << "response" << std::endl;
 				status = Status::OK;
-				
 			}
 		}
+		std::cout << "total compressed size : " << ullTotalCompressedSize << std::endl; 
 		delete[] szBuff;
 		return status;
 	}
@@ -93,7 +96,7 @@ class UncompressServiceImpl final
 			else
 			{
 				std::unique_ptr<UncompressRes> uncompressRes = std::unique_ptr<UncompressRes>(new UncompressRes());
-				int uncompressLen = 0;
+				int uncompressLen = (10 << 20);
 				std::cout << "start uncompressing" << std::endl;
 				memset(szBuff, '\0', 10 << 20);
 				uncompress((Bytef*)szBuff, (uLongf*)&uncompressLen, (const Bytef*)uncompressReq->compressed().c_str(), (uLong)uncompressReq->compressed().length());

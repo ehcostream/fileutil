@@ -283,8 +283,6 @@ int CFileUtil4Zlib::CompressWithGrpc(const std::vector<std::string>& rvecFiles, 
                     {
                         while(ifsp->peek() != EOF)
                         {
-                            
-                            spReq->clear_source();
                             spRes->clear_compressed();
                             ifsp->read(szBuff, CCustomParamManager::Instance().GetBuffSize());
                             std::streamsize cnt = ifsp->gcount();
@@ -296,6 +294,9 @@ int CFileUtil4Zlib::CompressWithGrpc(const std::vector<std::string>& rvecFiles, 
                             stream->Write(*spReq);
                             stream->Read(spRes.get());
                             std::cout << "compressed:" << spRes->compressed().length() << std::endl;
+                            int zlibblocklength = spRes->compressed().length();
+                            //每个zlib块都记录长度
+                            ofsp->write((char*)&zlibblocklength, sizeof(zlibblocklength));
                             ofsp->write(spRes->compressed().c_str(), spRes->compressed().length());
                         }
                         stream->WritesDone();
@@ -424,10 +425,13 @@ int CFileUtil4Zlib::UncompressWithGrpc(const std::string& rstrIn, const std::str
         {
             while(ifsp->peek() != EOF)
             {
-                ifsp->read(szBuff, CCustomParamManager::Instance().GetBuffSize());
+                //首先读取下一个zlib块的长度
+                int zlibblocklength = 0;
+                ifsp->read((char*)&zlibblocklength, sizeof(zlibblocklength));
+                //读取zlib内容
+                ifsp->read(szBuff, zlibblocklength);
                 std::streamsize cnt = ifsp->gcount();
                 szBuff[cnt] = '\0';
-                std::cout << "cnt:" << cnt << std::endl;
 
                 spReq->set_compressed(szBuff, cnt);
                 std::cout << "compressed file length:" << cnt << std::endl;
