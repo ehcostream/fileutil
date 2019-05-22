@@ -8,9 +8,8 @@ int main()
 	CFileUtilGeneratorBase* base = futil::CreateFactory(0);
 	CFileUtilBase* compresser = base->CreateCompresser();
 	std::vector<std::string> files;
-	files.emplace_back("../../bld/CMakeFiles");
-	//files.emplace_back("./CMakeFiles");
 	std::string strOutFile;
+	files.emplace_back("../../bld/CMakeFiles");
 	compresser->Execute(files, ".", nullptr, strOutFile);
 	std::cout << strOutFile << std::endl;
 

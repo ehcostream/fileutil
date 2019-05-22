@@ -1,11 +1,8 @@
-/*#include <iostream>
-#include <memory>
-#include <string>
-#include <vector>
+#pragma once 
 
-#include <grpcpp/grpcpp.h>
 #include <zlib.h>
-
+#include <memory>
+#include <grpcpp/grpcpp.h>
 #include "fileutil.grpc.pb.h"
 
 using grpc::Server;
@@ -22,16 +19,11 @@ using fileutil::UncompressService;
 using fileutil::UncompressReq;
 using fileutil::UncompressRes;
 
-#define CHECK_ERR(err, msg) { \
-    if (err != Z_OK) { \
-        fprintf(stderr, "%s error: %d\n", msg, err); \
-        exit(1); \
-    } \
-}
-class CompressServiceImpl final 
-	: public CompressService::Service
+
+
+class CCompressService final : public CompressService::Service
 {
-	Status s_compress(ServerContext* context, ServerReaderWriter<CompressRes, CompressReq>* stream) override
+	virtual Status s_compress(ServerContext* context, ServerReaderWriter<CompressRes, CompressReq>* stream) override
 	{
 		std::cout << __FUNCTION__ << std::endl;
 		std::unique_ptr<CompressReq> compressReq = std::unique_ptr<CompressReq>(new CompressReq());
@@ -74,13 +66,11 @@ class CompressServiceImpl final
 		delete[] szBuff;
 		return status;
 	}
-
 };
 
-class UncompressServiceImpl final
-	: public UncompressService::Service
+class CUncompressService final : public UncompressService::Service
 {
-	Status s_uncompress(ServerContext* context, ServerReaderWriter<UncompressRes, UncompressReq>* stream) override
+	virtual Status s_uncompress(ServerContext* context, ServerReaderWriter<UncompressRes, UncompressReq>* stream) override
 	{
 		std::cout << __FUNCTION__ << std::endl;
 		std::unique_ptr<UncompressReq> uncompressReq = std::unique_ptr<UncompressReq>(new UncompressReq());
@@ -117,24 +107,4 @@ class UncompressServiceImpl final
 	}
 };
 
-void RunServer()
-{
-	std::string server_address("0.0.0.0:8000");
-	std::unique_ptr<CompressServiceImpl> compressService = std::unique_ptr<CompressServiceImpl>(new CompressServiceImpl());
-	std::unique_ptr<UncompressServiceImpl> uncompressService = std::unique_ptr<UncompressServiceImpl>(new UncompressServiceImpl());
-	std::unique_ptr<ServerBuilder> builder = std::unique_ptr<ServerBuilder>(new ServerBuilder());
-	builder->AddListeningPort(server_address, grpc::InsecureServerCredentials());
-	builder->RegisterService(compressService.get());
-	builder->RegisterService(uncompressService.get());
-	std::unique_ptr<Server> server(builder->BuildAndStart());
-	std::cout << "Server Listening On " << server_address << std::endl;
-
-	server->Wait();
-}
-
-int main()
-{
-	RunServer();
-	return 0;
-}
-*/
+class CEncodeService final : public

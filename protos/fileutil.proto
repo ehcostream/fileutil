@@ -30,3 +30,33 @@ message UncompressRes
 {
 	bytes uncompressed = 1;
 }
+
+service EncodeService
+{
+	rpc s_encode (stream EncodeReq) returns (stream EncodeRes) {}
+}
+
+message EncodeReq
+{
+	byte source = 1;
+}
+
+message EncodeRes
+{
+	byte encoded = 1;
+}
+
+service DecodeService
+{
+	rpc s_decode (stream DecodeReq) returns (stream DecodeRes) {}
+}
+
+message DecodeReq
+{
+	byte encoded = 1;
+}
+
+message DecodeRes
+{
+	byte decoded = 1;
+}
