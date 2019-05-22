@@ -31,32 +31,17 @@ message UncompressRes
 	bytes uncompressed = 1;
 }
 
-service EncodeService
+service CryptoService
 {
-	rpc s_encode (stream EncodeReq) returns (stream EncodeRes) {}
+	rpc s_crypto (stream CryptoReq) returns (stream CryptoRes) {}
 }
 
-message EncodeReq
+message CryptoReq
 {
-	byte source = 1;
+	bytes source = 1;
 }
 
-message EncodeRes
+message CryptoRes
 {
-	byte encoded = 1;
-}
-
-service DecodeService
-{
-	rpc s_decode (stream DecodeReq) returns (stream DecodeRes) {}
-}
-
-message DecodeReq
-{
-	byte encoded = 1;
-}
-
-message DecodeRes
-{
-	byte decoded = 1;
+	bytes result = 1;
 }

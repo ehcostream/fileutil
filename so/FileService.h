@@ -19,6 +19,9 @@ using fileutil::UncompressService;
 using fileutil::UncompressReq;
 using fileutil::UncompressRes;
 
+using fileutil::CryptoService;
+using fileutil::CryptoReq;
+using fileutil::CryptoRes;
 
 
 class CCompressService final : public CompressService::Service
@@ -107,4 +110,46 @@ class CUncompressService final : public UncompressService::Service
 	}
 };
 
-class CEncodeService final : public
+class CCryptoService final : public CryptoService::Service
+{
+	virtual Status s_crypto(ServerContext* context, ServerReaderWriter<CryptoRes, CryptoReq>* stream) override
+	{
+		std::cout << __FUNCTION__ << std::endl;
+
+		std::string strBuff;
+		Status status = Status::OK;
+		std::unique_ptr<CryptoReq> cryptoReq = std::unique_ptr<CryptoReq>(new CryptoReq());
+		std::unique_ptr<CryptoRes> cryptoRes = std::unique_ptr<CryptoRes>(new CryptoRes());
+		while(stream->Read(cryptoReq.get()))
+		{
+			if(cryptoReq->source().length() > ( 1 << 20) )
+			{
+				return Status::CANCELLED;
+			}
+			else
+			{
+				//第一次收到密钥
+				if(user_key.empty())
+				{
+					user_key = cryptoReq->source();
+				}
+
+				//加密字节
+				uint64_t dwPos = 0;
+				for(const char byte : cryptoReq->source())
+				{
+					char szXor = user_key.at((dwPos++) % user_key.length());
+			        char result = szXor ^ byte;
+			        strBuff.append(&result, 1);
+				}
+
+				cryptoRes->set_result(strBuff);
+				stream->Write(*cryptoRes);
+			}
+		}
+
+		return status;
+	}
+private:
+	std::string user_key;
+};

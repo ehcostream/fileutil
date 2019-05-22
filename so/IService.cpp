@@ -7,6 +7,7 @@
 	//为服务申请堆空间
 	ServicePool::Instance().Alloc<CCompressService>();
 	ServicePool::Instance().Alloc<CUncompressService>();
+	ServicePool::Instance().Alloc<CCryptoService>();
 
 	//更新服务数目
 	*count = ServicePool::Instance().GetPoolSize();
