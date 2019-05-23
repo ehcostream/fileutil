@@ -1,9 +1,10 @@
 #include "SymCrypto.h"
 #include "FileUtilHead.h"
-
 #include <grpcpp/grpcpp.h>
 #include "fileutil.grpc.pb.h"
-
+#include "GRPCManager.h"
+#include <Constants.h>
+#include "GlobalConfig.h"
 
 using grpc::Channel;
 using grpc::ClientContext;
@@ -16,6 +17,10 @@ using fileutil::CryptoRes;
 
 int CSymCrypto::SymEncode(const std::string& rstrSource, const std::string& rstrOut, const std::string& rstrKey, bool bEncode, std::string& rstrOutFile)
 {
+    if(CGlobalConfig::Instance().IsEnableRPC())
+    {
+        return SymEncodeWithGrpc(rstrSource, rstrOut, rstrKey, bEncode, rstrOutFile);
+    }
     //判断输出文件夹是否存在如果不存在，则创建
     std::cout << __FILE__ << " " << __FUNCTION__ << " " << rstrKey << std::endl;
     fs::path filePath(rstrOut);
@@ -114,7 +119,7 @@ int CSymCrypto::SymEncodeWithGrpc(const std::string& rstrSource, const std::stri
         fs::create_directories(filePath);
     }
 
-    std::shared_ptr<Channel> channel = grpc::CreateChannel("0.0.0.0:8000", grpc::InsecureChannelCredentials());
+    std::shared_ptr<Channel> channel = CGRPCManager::Instance().GetChannel();
     std::unique_ptr<CryptoService::Stub> stub = std::unique_ptr<CryptoService::Stub>(CryptoService::NewStub(channel));
 
     std::ifstream in(rstrSource, std::ifstream::in | std::ifstream::binary);
@@ -185,12 +190,21 @@ int CSymCrypto::SymEncodeWithGrpc(const std::string& rstrSource, const std::stri
             CFileUtilHead::Attach(out, rstrOutFile, rstrKey);
         }
 
+        uint32_t dwPos = 0;
+        std::string strEncodeKey;
+        for(const auto c : rstrKey)
+        {
+            char szXor = Constants::ENCODE_KEY.at((dwPos++) % Constants::ENCODE_KEY.length());
+            char tC = szXor ^ (char)c;
+            strEncodeKey.append(&tC, 1);
+        }
+
         //通过rpc进行加密或者解密
         std::unique_ptr<CryptoReq> cryptoReq = std::unique_ptr<CryptoReq>(new CryptoReq());
         std::unique_ptr<CryptoRes> cryptoRes = std::unique_ptr<CryptoRes>(new CryptoRes());
 
         //首次传输发送密码 
-        cryptoReq->set_source(rstrKey);
+        cryptoReq->set_source(strEncodeKey);
         stream->Write(*cryptoReq);
         stream->Read(cryptoRes.get());
 

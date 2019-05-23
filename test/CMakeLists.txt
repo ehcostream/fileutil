@@ -16,6 +16,9 @@ endif(WIN32)
 find_package(ZLIB REQUIRED)
 find_package(Boost COMPONENTS system filesystem thread program_options REQUIRED)
 
+# Find nlohmann_json
+find_package(nlohmann_json 3.2.0 REQUIRED)
+
 if(WIN32)
 	INCLUDE_DIRECTORIES(C:/fz/include ${Boost_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR})
 else ()
@@ -35,5 +38,5 @@ if(WIN32)
 	C:/fz/lib/libfz.dll.a
 	)
 else ()
-	target_link_libraries(test /usr/local/lib/libfz.so ${ZLIB_LIBRARY} ${Boost_LIBRARIES})
+	target_link_libraries(test PRIVATE nlohmann_json::nlohmann_json /usr/local/lib/libfz.so /usr/local/lib/libcommon.so ${ZLIB_LIBRARY} ${Boost_LIBRARIES} )
 endif(WIN32)

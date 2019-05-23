@@ -3,6 +3,7 @@
 class CCustomParamManager : public CSingleton<CCustomParamManager>
 {
 public:
+	friend CSingleton;
 	void Set(uint32_t dwCpuCore, uint64_t ullBuffSize)
 	{
 		m_dwCpuCore = dwCpuCore;
@@ -22,4 +23,8 @@ public:
 private:
 	uint32_t m_dwCpuCore = 1;
 	uint64_t m_ullBuffSize = (1 << 20);
+	
+private:
+	CCustomParamManager() = default;
+	~CCustomParamManager() = default;
 };

@@ -2,10 +2,10 @@
 #include "zio.cpp"
 #include "FileUtilHead.h"
 #include "CustomParamManager.h"
-
+#include "GRPCManager.h"
 #include <grpcpp/grpcpp.h>
 #include "fileutil.grpc.pb.h"
-
+#include "GlobalConfig.h"
 
 using grpc::Channel;
 using grpc::ClientContext;
@@ -31,6 +31,11 @@ struct ThreadParam
 
 int CFileUtil4Zlib::Compress(const std::vector<std::string>& rvecFiles, const std::string& rstrOutDir, std::string& rstrOutFile)
 {
+    if(CGlobalConfig::Instance().IsEnableRPC())
+    {
+        return CompressWithGrpc(rvecFiles, rstrOutDir, rstrOutFile);
+    }
+
     std::cout << "Compress" << std::endl;
     assert(rvecFiles.size() > 0);
     int nError = 0;
@@ -171,7 +176,7 @@ int CFileUtil4Zlib::CompressWithGrpc(const std::vector<std::string>& rvecFiles, 
     assert(rvecFiles.size() > 0);
     int nError = 0;
     //rpc 初始化
-    std::shared_ptr<Channel> channel = grpc::CreateChannel("0.0.0.0:8000", grpc::InsecureChannelCredentials());
+    std::shared_ptr<Channel> channel = CGRPCManager::Instance().GetChannel();
     std::unique_ptr<CompressService::Stub> stub = std::unique_ptr<CompressService::Stub>(CompressService::NewStub(channel));
     do
     {
@@ -351,6 +356,10 @@ int CFileUtil4Zlib::CompressWithGrpc(const std::vector<std::string>& rvecFiles, 
 
 int CFileUtil4Zlib::Uncompress(const std::string& rstrIn, const std::string& rstrOutDir)
 {
+    if(CGlobalConfig::Instance().IsEnableRPC())
+    {
+        return UncompressWithGrpc(rstrIn, rstrOutDir);
+    }
 	std::string strMidFile;
     GetTmpMiddleFile(strMidFile, false);
     assert(!strMidFile.empty());
@@ -410,7 +419,7 @@ int CFileUtil4Zlib::UncompressWithGrpc(const std::string& rstrIn, const std::str
     assert(!strMidFile.empty());
     std::cout << __FUNCTION__ << std::endl;
 
-    std::shared_ptr<Channel> channel = grpc::CreateChannel("0.0.0.0:8000", grpc::InsecureChannelCredentials());
+    std::shared_ptr<Channel> channel = CGRPCManager::Instance().GetChannel();
     std::unique_ptr<UncompressService::Stub> stub = std::unique_ptr<UncompressService::Stub>(UncompressService::NewStub(channel));
 
     //文件进行解压缩

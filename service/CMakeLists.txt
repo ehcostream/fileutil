@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 file(GLOB SRC_FILES *.h *.cpp)
-project(so)
+project(service)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 if(NOT MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -O2 -Wall -Werror -z defs -mcmodel=medium")
@@ -64,6 +64,7 @@ if(WIN32)
 	                      ${ZLIB_LIBRARY}/libzlibstatic.a)
 else ()
 	target_link_libraries(fileservice 
+              /usr/local/lib/libcommon.so
 						  ${ZLIB_LIBRARY} 
 						  ${_GRPC_GRPCPP_UNSECURE}
 						  ${_PROTOBUF_LIBPROTOBUF}

@@ -6,5 +6,5 @@ int CFileDecoder::Execute(const std::vector<std::string>& rvecFiles, const std::
 	const char* szKey = (const char*)pExParam;
 	assert(szKey != nullptr);
 	std::string strKey(szKey);
-	return SymEncodeWithGrpc(rvecFiles.front(), rstrOutDir, strKey, false, rstrOutFile);
+	return SymEncode(rvecFiles.front(), rstrOutDir, strKey, false, rstrOutFile);
 }

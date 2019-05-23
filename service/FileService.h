@@ -4,6 +4,7 @@
 #include <memory>
 #include <grpcpp/grpcpp.h>
 #include "fileutil.grpc.pb.h"
+#include <fz/Constants.h>
 
 using grpc::Server;
 using grpc::ServerBuilder;
@@ -120,6 +121,7 @@ class CCryptoService final : public CryptoService::Service
 		Status status = Status::OK;
 		std::unique_ptr<CryptoReq> cryptoReq = std::unique_ptr<CryptoReq>(new CryptoReq());
 		std::unique_ptr<CryptoRes> cryptoRes = std::unique_ptr<CryptoRes>(new CryptoRes());
+		std::string strUserKey;
 		while(stream->Read(cryptoReq.get()))
 		{
 			if(cryptoReq->source().length() > ( 1 << 20) )
@@ -128,17 +130,29 @@ class CCryptoService final : public CryptoService::Service
 			}
 			else
 			{
-				//第一次收到密钥
-				if(user_key.empty())
+				//第一次收到密钥，默认密钥都是密文，在服务端还原成明文
+				if(strUserKey.empty())
 				{
-					user_key = cryptoReq->source();
+					strUserKey = cryptoReq->source();
+					std::cout << "encoded key： " << strUserKey << std::endl; 
+					uint32_t dwPos = 0;
+
+					std::string strEncodeKey;
+					for(const auto c : strUserKey)
+					{
+						char szXor = Constants::ENCODE_KEY.at((dwPos++) % Constants::ENCODE_KEY.length());
+						char tC = szXor ^ (char)c;
+						strEncodeKey.append(&tC, 1);
+					}
+					strUserKey = strEncodeKey;
+					std::cout << "decoded key： " << strUserKey << std::endl;
 				}
 
 				//加密字节
 				uint64_t dwPos = 0;
 				for(const char byte : cryptoReq->source())
 				{
-					char szXor = user_key.at((dwPos++) % user_key.length());
+					char szXor = strUserKey.at((dwPos++) % strUserKey.length());
 			        char result = szXor ^ byte;
 			        strBuff.append(&result, 1);
 				}
@@ -150,6 +164,4 @@ class CCryptoService final : public CryptoService::Service
 
 		return status;
 	}
-private:
-	std::string user_key;
 };

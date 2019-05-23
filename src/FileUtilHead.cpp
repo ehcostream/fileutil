@@ -2,12 +2,13 @@
 #include <memory>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
+#include <Constants.h>
+
 #include "FileUtilHead.h"
 #include "VersionInfo.h"
 #include "MD5.h"
 #include "strict_fstream.cpp"
 
-const std::string CFileUtilHead::ENCODE_KEY = "4393d121109b3abf1c94d1bd749d9c05";
 namespace fs = boost::filesystem;
 
 
@@ -52,7 +53,7 @@ int CFileUtilHead::Attach(std::ostream& rstOut, const std::string& rstrOutFile, 
 	std::string strEncodeKey;
 	for(const auto c : rstrUserKey)
 	{
-		char szXor = ENCODE_KEY.at((dwPos++) % ENCODE_KEY.length());
+		char szXor = Constants::ENCODE_KEY.at((dwPos++) % Constants::ENCODE_KEY.length());
 		char tC = szXor ^ (char)c;
 		strEncodeKey.append(&tC, 1);
 		std::cout << "xor:" << (int)szXor << ",c:" << (int)c << ",result:" << (int)tC << std::endl;
@@ -120,7 +121,7 @@ std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError, FileHead& rst
 		uint32_t dwPos = 0;
 		for(const auto c : strEncodeKey)
 		{
-			char szXor = ENCODE_KEY.at((dwPos++) % ENCODE_KEY.length());
+			char szXor = Constants::ENCODE_KEY.at((dwPos++) % Constants::ENCODE_KEY.length());
 			char tC = szXor ^ (char)c;
 			strRealKey.append(&tC, 1);
 			std::cout << "xor:" << (int)szXor << ",c:" << (int)c << ",result:" << (int)tC << std::endl;

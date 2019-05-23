@@ -2,9 +2,11 @@
 #include "FileUtilGenerator.h"
 #include "FileUtilGeneratorAsync.h"
 #include "ThreadPool.h"
+#include "GlobalConfig.h"
 
-FEXTERN CFileUtilGeneratorBase* CreateFactory(int async)
+FEXTERN CFileUtilGeneratorBase* CreateFactory(int async, const char* szConfig)
 {
+	CGlobalConfig::Instance().Read(szConfig);
 	if(async == 1)
 	{
 		return &CFileUtilGeneratorAsync::Instance();

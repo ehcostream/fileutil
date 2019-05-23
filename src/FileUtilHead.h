@@ -18,10 +18,12 @@ struct FileHead
 	char szFilename[256+1];
 };
 
+class CSymCrypto;
 
 class CFileUtilHead
 {
 public:
+	friend CSymCrypto;
 	CFileUtilHead();
 	explicit CFileUtilHead(const FileHead& rstHead);
 	~CFileUtilHead();
@@ -36,9 +38,6 @@ public:
 	static std::string Parse(std::istream& rstIn, int& nError, FileHead& rstHead);
 
 	static int GetData(const std::string& rstrFile, FileHead& rstHead);
-private:
-	//MD5(zlibutil_head_key)
-	static const std::string ENCODE_KEY;
 
 private:
 	std::string m_strVersion;

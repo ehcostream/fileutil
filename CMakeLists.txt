@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 SET(EXECUTABLE_OUTPUT_PATH bin)
 
 file(GLOB SRC_FILES src/*.cpp src/*.h)
+file(GLOB COMMON_FILES common/*.h common/*.cpp)
 project(fileutil/src)
 
 if(NOT MSVC)
@@ -21,6 +22,9 @@ set(_PROTOBUF_PROTOC $<TARGET_FILE:protobuf::protoc>)
 # Looks for gRPCConfig.cmake file installed by gRPC's cmake installation.
 find_package(gRPC CONFIG REQUIRED)
 message(STATUS "Using gRPC ${gRPC_VERSION}")
+
+# Find nlohmann_json
+find_package(nlohmann_json 3.2.0 REQUIRED)
 
 set(_GRPC_GRPCPP_UNSECURE gRPC::grpc++_unsecure)
 set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:gRPC::grpc_cpp_plugin>)
@@ -64,18 +68,22 @@ find_package(ZLIB REQUIRED)
 
 find_package(Boost COMPONENTS system filesystem thread program_options REQUIRED)
 
-include_directories(src/zlibwrapper ${Boost_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR})
+include_directories(src/zlibwrapper common ${Boost_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR})
 
 add_subdirectory(src/zlibwrapper)
+
+add_subdirectory(common)
 
 add_library(fz SHARED ${SRC_FILES} ${hw_proto_srcs} ${hw_grpc_srcs})
 
 #add_library(fzstaic STATIC ${SRC_FILES})
 
 if(WIN32)
-	target_link_libraries(fz wsock32 ws2_32)
 	target_link_libraries(fz 
+	wsock32
+	ws2_32
 	zlibwrapper 
+	common
 	${Boost_LIBRARIES}/libboost_system-mgw81-mt-s-x64-1_70.a 
 	${Boost_LIBRARIES}/libboost_filesystem-mgw81-mt-s-x64-1_70.a 
 	${Boost_LIBRARIES}/libboost_thread-mgw81-mt-s-x64-1_70.a 
@@ -83,11 +91,15 @@ if(WIN32)
 	${ZLIB_LIBRARY}/libzlibstatic.a)
 else ()
 	target_link_libraries(fz 
+						  PRIVATE nlohmann_json::nlohmann_json
+						  common
 						  zlibwrapper 
 						  ${ZLIB_LIBRARY} 
 						  ${Boost_LIBRARIES}
 						  ${_GRPC_GRPCPP_UNSECURE}
-						  ${_PROTOBUF_LIBPROTOBUF})
+						  ${_PROTOBUF_LIBPROTOBUF}
+
+						  )
 endif(WIN32)
 
 set_target_properties(fz PROPERTIES DEFINE_SYMBOL FILEUTIL_DLL)

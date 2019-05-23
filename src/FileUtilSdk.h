@@ -10,7 +10,7 @@ namespace futil
 {
 
 //创建工具类工厂
-	FEXTERN CFileUtilGeneratorBase* CreateFactory(int async);
+	FEXTERN CFileUtilGeneratorBase* CreateFactory(int async, const char* szConfig);
 
 //主线程等待异步操作结束
 	FEXTERN void WaitAsync();

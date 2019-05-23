@@ -1,0 +1,8 @@
+{
+	"EnableRPC" : true,
+	"RemoteServer" : "0.0.0.0:8000",
+	"LBState" : false,
+	"MaxSendMsgSize" : 2097152,
+	"MaxRecvMsgSize" : 10485760,
+	"FallbackTimeout" : 10000
+}
