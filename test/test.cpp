@@ -6,7 +6,7 @@
 int main()
 {
 	CFileUtilGeneratorBase* base = futil::CreateFactory(0, "../conf.json");
-	base->Set(2, 1 << 20);
+	base->Set(1, 1 << 20);
 	std::vector<std::string> files;
 	std::string strOutFile;
 

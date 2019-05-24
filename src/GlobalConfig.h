@@ -13,7 +13,7 @@ public:
 
 public:
 	std::string GetRemoteServer() { return m_strRemoteServer; }
-	bool GetLoadBalanceState() { return m_bLBState; }
+	bool GetLoadBalanceState() { return m_bEnableLoadBalance; }
 	bool IsEnableRPC() { return m_bEnableRPC; }
 	uint32_t GetMaxSendMsgSize() { return m_dwMaxSendMsgSize; }
 	uint32_t GetMaxRecvMsgSize() { return m_dwMaxRecvMsgSize; }
@@ -21,7 +21,7 @@ public:
 
 private:
 	std::string m_strRemoteServer;
-	bool m_bLBState = false;
+	bool m_bEnableLoadBalance = false;
 	bool m_bEnableRPC = false;
 	uint32_t m_dwMaxSendMsgSize = (2 << 20);
 	uint32_t m_dwMaxRecvMsgSize = (10 << 20);

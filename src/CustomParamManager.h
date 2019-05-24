@@ -1,5 +1,6 @@
 #pragma once
 #include "Singleton.h"
+#include "GlobalConfig.h"
 class CCustomParamManager : public CSingleton<CCustomParamManager>
 {
 public:
@@ -17,7 +18,15 @@ public:
 
 	inline uint64_t GetBuffSize()
 	{
-		return m_ullBuffSize;
+		if(CGlobalConfig::Instance().IsEnableRPC())
+		{
+			//如果启用rpc，默认使用1M空间
+			return 1 << 20;
+		}
+		else
+		{
+			return m_ullBuffSize;	
+		}
 	}
 
 private:

@@ -556,7 +556,7 @@ int CFileUtil4Zlib::UncompressFileWithZlib(const std::string& rstrCompressedFile
             break;
         }
 
-        char* szCompressed = new char[CCustomParamManager::Instance().GetBuffSize()];
+        char* szCompressed = new char[CCustomParamManager::Instance().GetBuffSize() + 1];
         if(szCompressed == nullptr)
         {
             nError = 3;
