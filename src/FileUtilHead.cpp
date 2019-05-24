@@ -7,7 +7,6 @@
 #include "FileUtilHead.h"
 #include "VersionInfo.h"
 #include "MD5.h"
-#include "strict_fstream.cpp"
 
 namespace fs = boost::filesystem;
 
@@ -139,7 +138,7 @@ int CFileUtilHead::GetData(const std::string& rstrFile, FileHead& rstHead)
 	{
 		return 2;
 	}
-	std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(rstrFile));
+	std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new std::ifstream(rstrFile));
 	std::istream * isp = ifsp.get();
 	(*isp).read((char*)&rstHead, sizeof(FileHead));
 	std::ostringstream oss;

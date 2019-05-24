@@ -1,5 +1,4 @@
 #include "FileUtil4Zlib.h"
-#include "zio.cpp"
 #include "FileUtilHead.h"
 #include "CustomParamManager.h"
 #include "GRPCManager.h"
@@ -28,162 +27,70 @@ struct ThreadParam
     std::string strOutFile;
 };
 
-
-int CFileUtil4Zlib::Compress(const std::vector<std::string>& rvecFiles, const std::string& rstrOutDir, std::string& rstrOutFile)
+int CFileUtil4Zlib::Compress(const std::vector<std::string>& rVecFiles, const std::string& rstrOutDir, std::string& rstrOutFile)
 {
     if(CGlobalConfig::Instance().IsEnableRPC())
     {
-        return CompressWithGrpc(rvecFiles, rstrOutDir, rstrOutFile);
+        return CompressWithGrpc(rVecFiles, rstrOutDir, rstrOutFile);
     }
 
-    std::cout << "Compress" << std::endl;
-    assert(rvecFiles.size() > 0);
+    std::cout << __FUNCTION__ << std::endl;
+    assert(rVecFiles.size() > 0);
     int nError = 0;
     do
     {
-        if(fs::is_regular_file(rvecFiles.front()) && rvecFiles.size() == 1)
+        if(fs::is_regular_file(rVecFiles.front()) && rVecFiles.size() == 1)
         {
-            int nParseResult = 0;
-            std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(rvecFiles.front()));
-            std::istream * isp = ifsp.get();
+            std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new std::ifstream(rVecFiles.front()));
             FileHead stHead;
-            CFileUtilHead::Parse(*isp, nParseResult, stHead);
-            if(std::string(stHead.szExt) == std::string(".zb"))
+            int nResult = 0;
+            CFileUtilHead::Parse(*ifsp, nResult, stHead);
+            if(strcmp(stHead.szExt, ".zb") == 0)
             {
                 ifsp->close();
-                //重复压缩
-                nError = 10;
+                nError = 0;
                 break;
             }
             ifsp->close();
         }
-        std::cout << CCustomParamManager::Instance().GetCpuCore() << std::endl;
-        std::cout << CCustomParamManager::Instance().GetBuffSize() << std::endl;
-        //归档
-        std::string strMidFile;
-        GetTmpMiddleFile(strMidFile, true);
-        assert(!strMidFile.empty());
-        nError = Archive(rvecFiles, strMidFile);
-        fs::path outFilePath;
-        try
-        {
-            fs::path outDir(rstrOutDir);
-            if(!fs::exists(outDir))
-            {
-                fs::create_directories(outDir);
-            }
 
-            outFilePath = fs::path(outDir);
-            std::string strExtension = ".ar.zb";
-            std::string strTargetFile;
+        std::string strArchiveFile;
+        GetTmpMiddleFile(strArchiveFile, true);
+        assert(!strArchiveFile.empty());
+        nError = Archive(rVecFiles, strArchiveFile);
+        PrepareCompress(rVecFiles, rstrOutDir, rstrOutFile);
 
-            auto file = rvecFiles.front();
-            for(const auto& file : rvecFiles)
-            {
-                std::cout << file << std::endl;
-            }
-            if(rvecFiles.size() > 1)
-            {
-                //如果有多个文件/夹，以第一个文件的父目录名称为文件名建立压缩文件
-                fs::path ptmp(fs::absolute(file));
-                if(std::string(&file.back()) == std::string("/") || std::string(&file.back()) == std::string("\\"))
-                {
-                    file.pop_back();
-                }
-                strTargetFile = fs::canonical(fs::absolute(file).parent_path()).filename().string();
-            }
-            else
-            {
-                fs::path path(file);
-                std::cout << "--->" << file << std::endl;
-                if(fs::is_regular_file(path))
-                {
-                    strTargetFile = path.stem().string();
-                }
-                if(fs::is_directory(path))
-                {
-                    if(std::string(&file.back()) == std::string("/") || std::string(&file.back()) == std::string("\\"))
-                    {
-                        file.pop_back();
-                    }
-                    path = fs::path(file);
-                    strTargetFile = path.filename().string();
-                }
-                
-                std::cout << strTargetFile << std::endl;
-            }
-            strTargetFile.append(strExtension);
-            outFilePath /= strTargetFile;
-            std::cout << "compress out file :" << outFilePath << std::endl;
-            rstrOutFile = outFilePath.string();
-
-        }
-        catch(std::exception ex)
-        {
-            nError = 11;
-            std::cout << "An file exception occured, " << ex.what() << std::endl;
-        }
-        
-        std::cout << CCustomParamManager::Instance().GetCpuCore() << "," << CCustomParamManager::Instance().GetBuffSize() << std::endl;
         if(CCustomParamManager::Instance().GetCpuCore() > 1)
         {
-            //多线程压缩
-            nError = CompressWithMT(strMidFile, outFilePath.string());
+            nError = CompressWithMT(strArchiveFile, rstrOutFile);
         }
         else
         {
             //调用zlib进行压缩
-            std::string strTmpFile;
-            do
-            {
-                GetTmpMiddleFile(strTmpFile, true);
-                std::unique_ptr< std::ostream> osp = std::unique_ptr< std::ostream >(new zio::ofstream(strTmpFile, CCustomParamManager::Instance().GetBuffSize()));
-                std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(strMidFile));
-                //附加文件头信息
-                try
-                {
-                    CatStream(*ifsp, *osp);
-                }
-                catch(std::exception ex)
-                {
-                    nError = 12;
-                    std::cout << "An compress exception occured, " << ex.what() << std::endl;
-                }
-                ifsp->close();
-                
-            }while(false);
-            std::ifstream in(strTmpFile, std::ifstream::binary);
-            std::ofstream out(outFilePath.string(), std::ofstream::binary);
-            CFileUtilHead::Attach(out, outFilePath.string());
-            CatStream(in, out);
-
-            in.close();
-            out.close();
-            //删除临时文件
-            fs::remove(fs::path(strMidFile));
-            fs::remove(fs::path(strTmpFile));
-            
+            nError = CompressFileWithZlib(strArchiveFile, rstrOutFile, CCustomParamManager::Instance().GetBuffSize());
         }
+
+        //删除临时归档文件
+        fs::remove(strArchiveFile);
+
     }while(false);
-    
-    
-	return nError;
+
+    return nError;
 }
 
-int CFileUtil4Zlib::CompressWithGrpc(const std::vector<std::string>& rvecFiles, const std::string& rstrOutDir, std::string& rstrOutFile)
+
+int CFileUtil4Zlib::CompressWithGrpc(const std::vector<std::string>& rVecFiles, const std::string& rstrOutDir, std::string& rstrOutFile)
 {
     std::cout << __FUNCTION__ << std::endl;
-    assert(rvecFiles.size() > 0);
+    assert(rVecFiles.size() > 0);
     int nError = 0;
-    //rpc 初始化
-    std::shared_ptr<Channel> channel = CGRPCManager::Instance().GetChannel();
-    std::unique_ptr<CompressService::Stub> stub = std::unique_ptr<CompressService::Stub>(CompressService::NewStub(channel));
+    
     do
     {
-        if(fs::is_regular_file(rvecFiles.front()) && rvecFiles.size() == 1)
+        if(fs::is_regular_file(rVecFiles.front()) && rVecFiles.size() == 1)
         {
             int nParseResult = 0;
-            std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(rvecFiles.front()));
+            std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new std::ifstream(rVecFiles.front()));
             std::istream * isp = ifsp.get();
             FileHead stHead;
             CFileUtilHead::Parse(*isp, nParseResult, stHead);
@@ -201,153 +108,75 @@ int CFileUtil4Zlib::CompressWithGrpc(const std::vector<std::string>& rvecFiles, 
         std::string strMidFile;
         GetTmpMiddleFile(strMidFile, true);
         assert(!strMidFile.empty());
-        nError = Archive(rvecFiles, strMidFile);
-        fs::path outFilePath;
-        try
+        nError = Archive(rVecFiles, strMidFile);
+        PrepareCompress(rVecFiles, rstrOutDir, rstrOutFile);
+            
+        //rpc 初始化
+        std::shared_ptr<Channel> channel = CGRPCManager::Instance().GetChannel();
+        std::unique_ptr<CompressService::Stub> stub = std::unique_ptr<CompressService::Stub>(CompressService::NewStub(channel));
+        std::unique_ptr<ClientContext> context = std::unique_ptr<ClientContext>(new ClientContext());
+        //调用rpc压缩服务进行压缩
+        auto stream = stub->s_compress(context.get());
+        std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new std::ifstream(strMidFile, std::ifstream::binary));
+        std::unique_ptr< std::ofstream > ofsp = std::unique_ptr< std::ofstream >(new std::ofstream(rstrOutFile, std::ofstream::binary));
+        //为输出文件附加文件头
+        CFileUtilHead::Attach(*ofsp, rstrOutFile);
+        do
         {
-            fs::path outDir(rstrOutDir);
-            if(!fs::exists(outDir))
+            if(ifsp->is_open())
             {
-                fs::create_directories(outDir);
-            }
+                std::cout << "open successfully" << std::endl;
 
-            outFilePath = fs::path(outDir);
-            std::string strExtension = ".ar.zb";
-            std::string strTargetFile;
+                char* szBuff = new char[CCustomParamManager::Instance().GetBuffSize() + 1];
 
-            auto file = rvecFiles.front();
-            for(const auto& file : rvecFiles)
-            {
-                std::cout << file << std::endl;
-                if(!fs::exists(fs::path(file)))
-                {
-                    nError = 5;
-                    break;
-                }
-            }
-            if(nError != 0)
-            {
-                break;
-            }
+                std::unique_ptr<CompressReq> spReq = std::unique_ptr<CompressReq>(new CompressReq());
+                std::unique_ptr<CompressRes> spRes = std::unique_ptr<CompressRes>(new CompressRes());
 
-            if(rvecFiles.size() > 1)
-            {
-                //如果有多个文件/夹，以第一个文件的父目录名称为文件名建立压缩文件
-                fs::path ptmp(fs::absolute(file));
-                if(std::string(&file.back()) == std::string("/") || std::string(&file.back()) == std::string("\\"))
+                if(szBuff)
                 {
-                    file.pop_back();
-                }
-                strTargetFile = fs::canonical(fs::absolute(file).parent_path()).filename().string();
-            }
-            else
-            {
-                fs::path path(file);
-                std::cout << "--->" << file << std::endl;
-                if(fs::is_regular_file(path))
-                {
-                    strTargetFile = path.stem().string();
-                    std::cout << strTargetFile << "," << path.stem() << std::endl;
-                }
-                if(fs::is_directory(path))
-                {
-                    if(std::string(&file.back()) == std::string("/") || std::string(&file.back()) == std::string("\\"))
+                    while(ifsp->peek() != EOF)
                     {
-                        file.pop_back();
+                        spRes->clear_compressed();
+                        ifsp->read(szBuff, CCustomParamManager::Instance().GetBuffSize());
+                        std::streamsize cnt = ifsp->gcount();
+                        szBuff[cnt] = '\0';
+                        std::cout << "cnt:" << cnt << std::endl;
+                        spReq->set_source(szBuff, cnt);
+                        std::cout << "spBuff length:" << spReq->source().length() << std::endl;
+
+                        stream->Write(*spReq);
+                        stream->Read(spRes.get());
+                        std::cout << "compressed:" << spRes->compressed().length() << std::endl;
+                        int zlibblocklength = spRes->compressed().length();
+                        //每个zlib块都记录长度
+                        ofsp->write((char*)&zlibblocklength, sizeof(zlibblocklength));
+                        ofsp->write(spRes->compressed().c_str(), spRes->compressed().length());
                     }
-                    path = fs::path(file);
-                    strTargetFile = path.filename().string();
-                    std::cout << "dir:" << strTargetFile << "," << path.stem() << std::endl;
-                }
-                
-                std::cout << "target file:" << strTargetFile << std::endl;
-            }
-            strTargetFile.append(strExtension);
-            outFilePath /= strTargetFile;
-            std::cout << "compress out file :" << outFilePath << std::endl;
-            rstrOutFile = outFilePath.string();
-
-        }
-        catch(std::exception ex)
-        {
-            nError = 11;
-            std::cout << "An file exception occured, " << ex.what() << std::endl;
-        }
-        
-        std::cout << CCustomParamManager::Instance().GetCpuCore() << "," << CCustomParamManager::Instance().GetBuffSize() << std::endl;
-        if(CCustomParamManager::Instance().GetCpuCore() > 1)
-        {
-            //多线程压缩
-            nError = CompressWithMT(strMidFile, outFilePath.string());
-        }
-        else
-        {
-            //调用rpc压缩服务进行压缩
-
-            std::unique_ptr<ClientContext> context = std::unique_ptr<ClientContext>(new ClientContext());
-            std::cout << "start calling rpc" << std::endl;
-            auto stream = stub->s_compress(context.get());
-            std::cout << "call rpc compress" << std::endl;
-            std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new std::ifstream(strMidFile, std::ifstream::binary));
-            std::unique_ptr< std::ofstream > ofsp = std::unique_ptr< std::ofstream >(new std::ofstream(rstrOutFile, std::ofstream::binary));
-            //为输出文件附加文件头
-            CFileUtilHead::Attach(*ofsp, rstrOutFile);
-            do
-            {
-                if(ifsp->is_open())
-                {
-                    std::cout << "open successfully" << std::endl;
-
-                    char* szBuff = new char[CCustomParamManager::Instance().GetBuffSize() + 1];
-
-                    std::unique_ptr<CompressReq> spReq = std::unique_ptr<CompressReq>(new CompressReq());
-                    std::unique_ptr<CompressRes> spRes = std::unique_ptr<CompressRes>(new CompressRes());
-
-                    if(szBuff)
+                    stream->WritesDone();
+                    Status status = stream->Finish();
+                    if(!status.ok())
                     {
-                        while(ifsp->peek() != EOF)
-                        {
-                            spRes->clear_compressed();
-                            ifsp->read(szBuff, CCustomParamManager::Instance().GetBuffSize());
-                            std::streamsize cnt = ifsp->gcount();
-                            szBuff[cnt] = '\0';
-                            std::cout << "cnt:" << cnt << std::endl;
-                            spReq->set_source(szBuff, cnt);
-                            std::cout << "spBuff length:" << spReq->source().length() << std::endl;
-
-                            stream->Write(*spReq);
-                            stream->Read(spRes.get());
-                            std::cout << "compressed:" << spRes->compressed().length() << std::endl;
-                            int zlibblocklength = spRes->compressed().length();
-                            //每个zlib块都记录长度
-                            ofsp->write((char*)&zlibblocklength, sizeof(zlibblocklength));
-                            ofsp->write(spRes->compressed().c_str(), spRes->compressed().length());
-                        }
-                        stream->WritesDone();
-                        Status status = stream->Finish();
-                        if(!status.ok())
-                        {
-                            std::cout << status.error_code() << ": " << status.error_message() << std::endl;
-                        }
+                        std::cout << status.error_code() << ": " << status.error_message() << std::endl;
                     }
-                    else
-                    {
-                        nError = 11;
-                        break;
-                    }
-                    delete[] szBuff;
                 }
                 else
                 {
-                    std::cout << "open failed" << std::endl;
-                    nError = 10;
+                    nError = 11;
                     break;
                 }
-            }while(false);
-            ifsp->close();
-            ofsp->close();
-            fs::remove(fs::path(strMidFile));
-        }
+                delete[] szBuff;
+            }
+            else
+            {
+                std::cout << "open failed" << std::endl;
+                nError = 10;
+                break;
+            }
+        }while(false);
+        ifsp->close();
+        ofsp->close();
+        fs::remove(fs::path(strMidFile));
+    
     }while(false);
     
     return nError;
@@ -360,56 +189,14 @@ int CFileUtil4Zlib::Uncompress(const std::string& rstrIn, const std::string& rst
     {
         return UncompressWithGrpc(rstrIn, rstrOutDir);
     }
-	std::string strMidFile;
-    GetTmpMiddleFile(strMidFile, false);
-    assert(!strMidFile.empty());
-    std::cout << this << std::endl;
-    //文件进行解压缩
-    std::unique_ptr< std::ofstream > ofsp = std::unique_ptr< std::ofstream >(new strict_fstream::ofstream(strMidFile));
-    std::ostream * osp = ofsp.get();
-    std::cout << __FUNCTION__ << "," << CCustomParamManager::Instance().GetBuffSize() << "," << rstrIn << std::endl;
-    
-    std::unique_ptr< std::istream > isp = std::unique_ptr< std::istream >(new zio::ifstream(rstrIn, CCustomParamManager::Instance().GetBuffSize()));
-    zio::ifstream* ifsp = static_cast<zio::ifstream*>(isp.get());
-    FileHead stHead;
-    memset(&stHead, '\0', sizeof(stHead));
+    std::string strArchiveFile;
+    GetTmpMiddleFile(strArchiveFile, false);
+    assert(!strArchiveFile.empty());
     int nError = 0;
-
-    std::ifstream in;
-    do
-    {
-        if(fs::is_directory(fs::path(rstrIn)))
-        {
-            std::cout << "file format is invalid" << std::endl;
-            nError = 1;
-            break;   
-        }
-        in.open(rstrIn, std::ifstream::in | std::ifstream::binary);
-        //检测文件是否有效
-        CFileUtilHead::Parse(in, nError, stHead);
-        if(nError != 0)
-        {
-            nError = 1;
-            break;
-        }
-        if(std::string(stHead.szExt) != std::string(".zb"))
-        {
-            nError = 2;
-            break;
-        }
-
-        ifsp->GetStreamBuf()->pubseekoff(sizeof(stHead), ifsp->beg);
-        CatStream(*isp, *osp);
-        ofsp->close();
-
-        //解档
-        nError = Dearchive(strMidFile, rstrOutDir);
-    }while(false);
-    in.close();
-    //删除临时文件
-    fs::remove(fs::path(strMidFile));
-    std::cout << __FUNCTION__ << ", end" << std::endl;
-	return nError;
+    nError = UncompressFileWithZlib(rstrIn, strArchiveFile);
+    nError = Dearchive(strArchiveFile, rstrOutDir);
+    fs::remove(fs::path(strArchiveFile));
+    return nError;
 }
 
 int CFileUtil4Zlib::UncompressWithGrpc(const std::string& rstrIn, const std::string& rstrOutDirs)
@@ -419,8 +206,7 @@ int CFileUtil4Zlib::UncompressWithGrpc(const std::string& rstrIn, const std::str
     assert(!strMidFile.empty());
     std::cout << __FUNCTION__ << std::endl;
 
-    std::shared_ptr<Channel> channel = CGRPCManager::Instance().GetChannel();
-    std::unique_ptr<UncompressService::Stub> stub = std::unique_ptr<UncompressService::Stub>(UncompressService::NewStub(channel));
+    
 
     //文件进行解压缩
     int nError = 0;
@@ -434,7 +220,11 @@ int CFileUtil4Zlib::UncompressWithGrpc(const std::string& rstrIn, const std::str
             nError = 1;
             break;
         }
+
         //调用rpc进行解压缩
+        std::shared_ptr<Channel> channel = CGRPCManager::Instance().GetChannel();
+        std::unique_ptr<UncompressService::Stub> stub = std::unique_ptr<UncompressService::Stub>(UncompressService::NewStub(channel));
+        
         ClientContext context;
         std::cout << "start calling rpc" << std::endl;
         auto stream = stub->s_uncompress(&context);
@@ -584,7 +374,6 @@ int CFileUtil4Zlib::CompressWithMT(const std::string rstrAchiveFile, const std::
         
     }while(false);
     //清理中间文件
-    fs::remove(fs::path(rstrAchiveFile));
     for(const auto& file : vecFiles)
     {
         fs::remove(fs::path(file));
@@ -601,9 +390,239 @@ void CFileUtil4Zlib::CompressAFile(ThreadParam& stParam)
 {
     GetTmpMiddleFile(stParam.strOutFile, true, 2, stParam.threadSeq);
     std::cout << "  thread source--->" << stParam.strSource << "  thread result--->" << stParam.strOutFile << " buff size-->" << stParam.ullBuffSize << std::endl;
-    std::unique_ptr< std::ostream > osp = std::unique_ptr< std::ostream >(new zio::ofstream(stParam.strOutFile, stParam.ullBuffSize));
-    std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(stParam.strSource));
-    CatStream(*ifsp, *osp);
-    ifsp->close();
+    CompressFileWithZlib(stParam.strSource, stParam.strOutFile, stParam.ullBuffSize, true);
     std::cout << "  thread result--->" << stParam.strOutFile << std::endl;
+}
+
+
+void CFileUtil4Zlib::PrepareCompress(const std::vector<std::string>& rVecFiles, const std::string& rstrOutDir, std::string& rstrOutFile)
+{
+    //对生成的压缩文件
+    fs::path outFilePath;
+    try
+    {
+        fs::path outDir(rstrOutDir);
+        if(!fs::exists(outDir))
+        {
+            fs::create_directories(outDir);
+        }
+        outFilePath = fs::path(outDir);
+        std::string strExtension = ".ar.zb";
+        std::string strTargetFile;
+        
+        std::string strFront = rVecFiles.front();
+        //如果压缩多个文件
+        if(rVecFiles.size() > 1)
+        {
+            //如果包含多个文件，默认以第一个文件的父目录名称为文件名建立压缩文件
+            if(strFront.back() == '/' || strFront.back() == '\\')
+            {   
+                strFront.pop_back();
+            }
+            strTargetFile = fs::canonical(fs::absolute(strFront).parent_path()).filename().string();
+        }
+        else
+        {
+            fs::path filePath(strFront);
+            if(fs::is_regular_file(filePath))
+            {
+                strTargetFile = filePath.stem().string();
+            }
+            else if(fs::is_directory(filePath))
+            {
+                if(strFront.back() == '/' || strFront.back() == '\\')
+                {   
+                    strFront.pop_back();
+                }
+                filePath = fs::path(strFront);
+                strTargetFile = filePath.filename().string();
+            }
+            else
+            {
+                //dont handle
+            }
+        }
+        
+        strTargetFile.append(strExtension);
+        outFilePath /= strTargetFile;
+        rstrOutFile = outFilePath.string();
+        std::cout << "Output file path: " << outFilePath << std::endl;
+    }
+    catch(std::exception ext)
+    {
+        std::cout << ext.what() << std::endl;
+    }
+}
+
+
+int CFileUtil4Zlib::CompressFileWithZlib(const std::string& rstrSource, const std::string& rstrCompressedFile, uint64_t ullBuffSize, bool bMT)
+{
+    int nError = 0;
+    char* szSource = nullptr;
+    char* szCompressed = nullptr;
+    std::unique_ptr< std::ifstream > ifsp;
+    std::unique_ptr< std::ofstream > ofsp;
+    do
+    {
+        char* szSource = new char[ullBuffSize];
+        if(szSource == nullptr)
+        {
+            nError = 1;
+            break;
+        }
+
+        char* szCompressed = new char[ullBuffSize];
+        if(szCompressed == nullptr)
+        {
+            nError = 2;
+            break;
+        }
+
+        ifsp = std::unique_ptr< std::ifstream >(new std::ifstream(rstrSource, std::ifstream::binary));
+        if(!ifsp->is_open())
+        {
+            nError = 2;
+            break;
+        }
+
+        ofsp = std::unique_ptr< std::ofstream >(new std::ofstream(rstrCompressedFile, std::ofstream::binary));
+        if(!ofsp->is_open())
+        {
+            nError = 3;
+            break;
+        }
+
+        //为压缩文件附加头信息，多线程除外，多线程在最后重组时附加
+        if(!bMT)
+        {
+            CFileUtilHead::Attach(*ofsp, rstrCompressedFile);    
+        }
+        
+        while(ifsp->peek() != EOF)
+        {
+            ifsp->read(szSource, ullBuffSize);
+            std::streamsize readBytes = ifsp->gcount();
+            szSource[readBytes] = '\0';
+            std::cout << "Read bytes: " << readBytes << std::endl;
+
+            int err, compressLen = CCustomParamManager::Instance().GetBuffSize();
+            err = compress2((Bytef*)szCompressed, 
+                            (uLongf*)&compressLen, 
+                            (const Bytef*)szSource, 
+                            (uLong)readBytes, 
+                            Z_DEFAULT_COMPRESSION);
+
+            if(err != 0)
+            {
+                nError = 4;
+                break;
+            }
+            std::cout << "Compressed len: " << compressLen << std::endl;
+            //zlibheader + compressed content ... zlibheader + compressed content
+            //每次压缩后记录压缩后长度并记录到文件中，以便于进行解压缩
+            ofsp->write((char*)&compressLen, sizeof(compressLen));
+            ofsp->write(szCompressed, compressLen);
+        }
+
+    }while(false);
+
+    if(szSource) delete[] szSource;
+    if(szCompressed) delete[] szCompressed;
+    if(ifsp->is_open()) ifsp->close();
+    if(ofsp->is_open()) ofsp->close();
+
+    return nError;
+}
+
+int CFileUtil4Zlib::UncompressFileWithZlib(const std::string& rstrCompressedFile, const std::string& rstrSource)
+{
+    int nError = 0;
+    char* szSource = nullptr;
+    char* szCompressed = nullptr;
+    std::unique_ptr< std::ifstream > ifsp;
+    std::unique_ptr< std::ofstream > ofsp;
+    do
+    {
+        if(fs::is_directory(fs::path(rstrCompressedFile)))
+        {
+            nError = 1;
+            break;
+        }
+
+        char* szSource = new char[CCustomParamManager::Instance().GetBuffSize() * 10];
+        if(szSource == nullptr)
+        {
+            nError = 2;
+            break;
+        }
+
+        char* szCompressed = new char[CCustomParamManager::Instance().GetBuffSize()];
+        if(szCompressed == nullptr)
+        {
+            nError = 3;
+            break;
+        }
+
+        ifsp = std::unique_ptr< std::ifstream >(new std::ifstream(rstrCompressedFile, std::ifstream::binary));
+        if(!ifsp->is_open())
+        {
+            nError = 4;
+            break;
+        }
+
+        ofsp = std::unique_ptr< std::ofstream >(new std::ofstream(rstrSource, std::ofstream::binary));
+        if(!ofsp->is_open())
+        {
+            nError = 5;
+            break;
+        }
+
+        //解析头信息
+        FileHead stHead;
+        CFileUtilHead::Parse(*ifsp, nError, stHead);
+        if(nError != 0)
+        {
+            nError = 6;
+            break;
+        }
+
+        if(strcmp(stHead.szExt, ".zb") != 0)
+        {
+            nError = 7;
+            break;
+        }
+        
+        while(ifsp->peek() != EOF)
+        {
+            //读取zlib块的长度
+            int nZlibBlockLen = 0;
+            ifsp->read((char*)&nZlibBlockLen, sizeof(nZlibBlockLen));
+            //读取zlib内容
+            ifsp->read(szCompressed, nZlibBlockLen);
+            std::streamsize readBytes = ifsp->gcount();
+            szCompressed[readBytes] = '\0';
+            std::cout << "Read bytes: " << readBytes << std::endl;
+            //调用zlib进行解压缩
+            int nUncompressLen = CCustomParamManager::Instance().GetBuffSize();
+            int err = uncompress((Bytef*)szSource, 
+                       (uLongf*)&nUncompressLen,
+                       (const Bytef*)szCompressed,
+                       (uLongf)nZlibBlockLen);
+            if(err != 0)
+            {
+                nError = 8;
+                break;
+            }
+            std::cout << "Uncompressed len: " << nUncompressLen << std::endl;
+            ofsp->write(szSource, nUncompressLen);
+        }
+
+    }while(false);
+
+    if(szSource) delete[] szSource;
+    if(szCompressed) delete[] szCompressed;
+    if(ifsp->is_open()) ifsp->close();
+    if(ofsp->is_open()) ofsp->close();
+
+    return nError;
 }

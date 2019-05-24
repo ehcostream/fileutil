@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.10)
-SET(EXECUTABLE_OUTPUT_PATH bin)
 
 file(GLOB SRC_FILES src/*.cpp src/*.h)
 file(GLOB COMMON_FILES common/*.h common/*.cpp)
@@ -68,9 +67,7 @@ find_package(ZLIB REQUIRED)
 
 find_package(Boost COMPONENTS system filesystem thread program_options REQUIRED)
 
-include_directories(src/zlibwrapper common ${Boost_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR})
-
-add_subdirectory(src/zlibwrapper)
+include_directories(common ${Boost_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR})
 
 add_subdirectory(common)
 
@@ -82,7 +79,6 @@ if(WIN32)
 	target_link_libraries(fz 
 	wsock32
 	ws2_32
-	zlibwrapper 
 	common
 	${Boost_LIBRARIES}/libboost_system-mgw81-mt-s-x64-1_70.a 
 	${Boost_LIBRARIES}/libboost_filesystem-mgw81-mt-s-x64-1_70.a 
@@ -93,7 +89,6 @@ else ()
 	target_link_libraries(fz 
 						  PRIVATE nlohmann_json::nlohmann_json
 						  common
-						  zlibwrapper 
 						  ${ZLIB_LIBRARY} 
 						  ${Boost_LIBRARIES}
 						  ${_GRPC_GRPCPP_UNSECURE}

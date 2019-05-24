@@ -1,7 +1,6 @@
 #include "FileUtilBase.h"
 #include "FileUtilHead.h"
 #include "CustomParamManager.h"
-#include "strict_fstream.cpp"
 
 //进行归档的文件的头部信息
 enum FileType
@@ -22,7 +21,7 @@ struct FileInfo
     char szFPath[255];
 };
 
-bool CFileUtilBase::CatStream(std::istream& ris, std::ostream& ros)
+bool CFileUtilBase::CatStream(std::ifstream& ris, std::ofstream& ros)
 {
     char* szBuff = new char[CCustomParamManager::Instance().GetBuffSize()];
     if(szBuff)
@@ -401,13 +400,13 @@ int CFileUtilBase::CutFileIntoPieces(const std::string& rstrIn, std::vector<std:
 
 void CFileUtilBase::CombainFiles(const std::vector<std::string>& rVecInFiles, const std::string& rstrOutFile)
 {
-    std::unique_ptr< std::ofstream > osp = std::unique_ptr< std::ofstream >(new strict_fstream::ofstream(rstrOutFile));
+    std::unique_ptr< std::ofstream > osp = std::unique_ptr< std::ofstream >(new std::ofstream(rstrOutFile));
     //附加头信息
     CFileUtilHead::Attach(*osp, rstrOutFile);
     for(const auto& file : rVecInFiles)
     {
         std::cout << "combain file : " << file << std::endl;
-        std::unique_ptr< std::ifstream > isp = std::unique_ptr< std::ifstream >(new strict_fstream::ifstream(file));
+        std::unique_ptr< std::ifstream > isp = std::unique_ptr< std::ifstream >(new std::ifstream(file));
         CatStream(*isp, *osp);
         isp->close();
     }
