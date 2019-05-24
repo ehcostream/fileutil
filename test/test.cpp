@@ -23,7 +23,7 @@ int main()
 	uncompresser->Execute(files, "./tmp", nullptr, strOutFile);
 
 	//加密
-	/*CFileUtilBase* encoder = base->CreateEncoder();
+	CFileUtilBase* encoder = base->CreateEncoder();
 	files.clear();
 	files.emplace_back("./Makefile");
 	encoder->Execute(files, "./crypto", (void*)"hello", strOutFile);
@@ -32,7 +32,7 @@ int main()
 	CFileUtilBase* decoder = base->CreateDecoder("./crypto/Makefile.spc");
 	files.clear();
 	files.emplace_back("./crypto/Makefile.spc");
-	decoder->Execute(files, "./crypto", (void*)"hello", strOutFile);*/
+	decoder->Execute(files, "./crypto", (void*)"hello", strOutFile);
 
 	// compress with async mode
 	// base = futil::CreateFactory(1);

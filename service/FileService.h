@@ -124,7 +124,7 @@ class CCryptoService final : public CryptoService::Service
 		std::string strUserKey;
 		while(stream->Read(cryptoReq.get()))
 		{
-			if(cryptoReq->source().length() > ( 1 << 20) )
+			if(cryptoReq->source().length() > (1 << 20) )
 			{
 				return Status::CANCELLED;
 			}

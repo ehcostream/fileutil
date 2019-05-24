@@ -1,10 +1,12 @@
-#include "SymCrypto.h"
-#include "FileUtilHead.h"
 #include <grpcpp/grpcpp.h>
 #include "fileutil.grpc.pb.h"
-#include "GRPCManager.h"
+
 #include <Constants.h>
+#include "FileUtilHead.h"
+#include "SymCrypto.h"
+#include "GRPCManager.h"
 #include "GlobalConfig.h"
+#include "CustomParamManager.h"
 
 using grpc::Channel;
 using grpc::ClientContext;
@@ -93,17 +95,27 @@ int CSymCrypto::SymEncode(const std::string& rstrSource, const std::string& rstr
             //附加文件头信息
             CFileUtilHead::Attach(out, rstrOutFile, rstrKey);
         }
-        uint64_t dwPos = 0;
-        char c;
+        
+        
         //开始进行解密/解密
+        char* szBuff = new char[CCustomParamManager::Instance().GetBuffSize() + 1];
+        //密钥位置
+        
         while(in.peek() != EOF)
         {
-            char szXor = rstrKey.at((dwPos++) % rstrKey.length());
-            in.get(c);
-            char tC = szXor ^ (char)c;
-            out << tC;
+            in.read(szBuff, CCustomParamManager::Instance().GetBuffSize());
+            std::streamsize readBytes = in.gcount();
+            szBuff[readBytes] = '\0';
+            uint64_t dwPos = 0;
+            for(int i = 0; i < readBytes; ++i)
+            {
+                char szXor = rstrKey.at((dwPos++) % rstrKey.length());
+                char tC = szXor ^ (char)(*(szBuff + i));
+                out << tC;
+            }
         }
 
+        delete[] szBuff;
     }while(false);
     in.close();
     out.close();
@@ -211,7 +223,7 @@ int CSymCrypto::SymEncodeWithGrpc(const std::string& rstrSource, const std::stri
         cryptoReq->clear_source();
         cryptoRes->clear_result();
 
-        char* szBuff = new char[ 1 << 20 ];
+        char* szBuff = new char[CCustomParamManager::Instance().GetBuffSize()];
         while(in.peek() != EOF)
         {
             in.read(szBuff, 1 << 20);
