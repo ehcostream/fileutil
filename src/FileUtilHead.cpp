@@ -3,7 +3,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <Constants.h>
-
+#include <Errors.h>
 #include "FileUtilHead.h"
 #include "VersionInfo.h"
 #include "MD5.h"
@@ -40,6 +40,7 @@ void CFileUtilHead::Init(const FileHead& rstHead)
 //将头信息附加到文件头部,调用时机：在文件刚打开时调用，切记！！！
 int CFileUtilHead::Attach(std::ostream& rstOut, const std::string& rstrOutFile, std::string rstrUserKey)
 {
+	int nError = Errors::ERROR_NONE;
 	std::cout << __FILE__ << "\t" << __FUNCTION__ << std::endl;
 	//只支持32字节以内的字符
 	FileHead stHead;
@@ -91,7 +92,7 @@ int CFileUtilHead::Attach(std::ostream& rstOut, const std::string& rstrOutFile, 
 		          << std::string(stHead.szSign) << std::endl;
 
 	rstOut.write((char*)&stHead, sizeof(FileHead));
-	return 0;
+	return nError;
 }
 
 std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError, FileHead& rstHead)
@@ -100,7 +101,7 @@ std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError, FileHead& rst
 	//判断是否有效
 	//解析实际的key
 
-	nError = 0;
+	nError = Errors::ERROR_NONE;
 	std::string strRealKey;
 	do
 	{
@@ -111,7 +112,7 @@ std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError, FileHead& rst
 		if(std::string(rstHead.szSign) != strSign)
 		{
 			//文件无效
-			nError = 1;
+			nError = Errors::INVALID_SIGN;
 			break;
 		}
 		std::string strEncodeKey(rstHead.szKey);
@@ -134,23 +135,27 @@ std::string CFileUtilHead::Parse(std::istream& rstIn, int& nError, FileHead& rst
 
 int CFileUtilHead::GetData(const std::string& rstrFile, FileHead& rstHead)
 {
-	if(fs::is_directory(fs::path(rstrFile)))
+	int nError = Errors::ERROR_NONE;
+	do
 	{
-		return 2;
-	}
-	std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new std::ifstream(rstrFile));
-	std::istream * isp = ifsp.get();
-	(*isp).read((char*)&rstHead, sizeof(FileHead));
-	std::ostringstream oss;
-	oss << std::string(rstHead.szVersion) << std::string(rstHead.szKey) << rstHead.dwTimeStamp << std::string(rstHead.szExt) << std::string(rstHead.szFilename);
-	ifsp->close();
-	std::string strSign(MD5::Encode(oss.str()));
-	if(std::string(rstHead.szSign) != strSign)
-	{
-		return 1;
-	}
-	else
-	{
-		return 0;
-	}
+		if(fs::is_directory(fs::path(rstrFile)))
+		{
+			nError = Errors::PARSE_FILE_INVALID;
+			break;
+		}
+		std::unique_ptr< std::ifstream > ifsp = std::unique_ptr< std::ifstream >(new std::ifstream(rstrFile));
+		std::istream * isp = ifsp.get();
+		(*isp).read((char*)&rstHead, sizeof(FileHead));
+		std::ostringstream oss;
+		oss << std::string(rstHead.szVersion) << std::string(rstHead.szKey) << rstHead.dwTimeStamp << std::string(rstHead.szExt) << std::string(rstHead.szFilename);
+		ifsp->close();
+		std::string strSign(MD5::Encode(oss.str()));
+		if(std::string(rstHead.szSign) != strSign)
+		{
+			nError = Errors::INVALID_SIGN;
+			break;
+		}
+	}while(false);
+
+	return nError;
 }

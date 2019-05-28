@@ -5,6 +5,7 @@
 #include <grpcpp/grpcpp.h>
 #include "fileutil.grpc.pb.h"
 #include "GlobalConfig.h"
+#include <Errors.h>
 
 using grpc::Channel;
 using grpc::ClientContext;
@@ -36,7 +37,7 @@ int CFileUtil4Zlib::Compress(const std::vector<std::string>& rVecFiles, const st
 
     std::cout << __FUNCTION__ << std::endl;
     assert(rVecFiles.size() > 0);
-    int nError = 0;
+    int nError = Errors::ERROR_NONE;
     do
     {
         if(fs::is_regular_file(rVecFiles.front()) && rVecFiles.size() == 1)
@@ -48,7 +49,7 @@ int CFileUtil4Zlib::Compress(const std::vector<std::string>& rVecFiles, const st
             if(strcmp(stHead.szExt, ".zb") == 0)
             {
                 ifsp->close();
-                nError = 0;
+                nError = Errors::COMPRESS_REPEAT;
                 break;
             }
             ifsp->close();
@@ -75,6 +76,10 @@ int CFileUtil4Zlib::Compress(const std::vector<std::string>& rVecFiles, const st
 
     }while(false);
 
+    if(m_onFinished)
+    {
+        m_onFinished(nError);
+    }
     return nError;
 }
 
@@ -83,7 +88,7 @@ int CFileUtil4Zlib::CompressWithGrpc(const std::vector<std::string>& rVecFiles, 
 {
     std::cout << __FUNCTION__ << std::endl;
     assert(rVecFiles.size() > 0);
-    int nError = 0;
+    int nError = Errors::ERROR_NONE;
     
     do
     {
@@ -98,7 +103,7 @@ int CFileUtil4Zlib::CompressWithGrpc(const std::vector<std::string>& rVecFiles, 
             {
                 ifsp->close();
                 //重复压缩
-                nError = 10;
+                nError = Errors::COMPRESS_REPEAT;
                 break;
             }
             ifsp->close();
@@ -161,7 +166,7 @@ int CFileUtil4Zlib::CompressWithGrpc(const std::vector<std::string>& rVecFiles, 
                 }
                 else
                 {
-                    nError = 11;
+                    nError = Errors::RPC_COMPRESS_BUFF_ALLOC_FAILED;
                     break;
                 }
                 delete[] szBuff;
@@ -169,7 +174,7 @@ int CFileUtil4Zlib::CompressWithGrpc(const std::vector<std::string>& rVecFiles, 
             else
             {
                 std::cout << "open failed" << std::endl;
-                nError = 10;
+                nError = Errors::RPC_COMPRESS_IN_FILE_OPEN_FAILED;
                 break;
             }
         }while(false);
@@ -178,6 +183,10 @@ int CFileUtil4Zlib::CompressWithGrpc(const std::vector<std::string>& rVecFiles, 
         fs::remove(fs::path(strMidFile));
     
     }while(false);
+    if(m_onFinished)
+    {
+        m_onFinished(nError);
+    }
     
     return nError;
 }
@@ -192,10 +201,23 @@ int CFileUtil4Zlib::Uncompress(const std::string& rstrIn, const std::string& rst
     std::string strArchiveFile;
     GetTmpMiddleFile(strArchiveFile, false);
     assert(!strArchiveFile.empty());
-    int nError = 0;
-    nError = UncompressFileWithZlib(rstrIn, strArchiveFile);
-    nError = Dearchive(strArchiveFile, rstrOutDir);
+    int nError = Errors::ERROR_NONE;
+    do
+    {
+        nError = UncompressFileWithZlib(rstrIn, strArchiveFile);
+        if(nError != Errors::ERROR_NONE)
+        {
+            break;
+        }
+        nError = Dearchive(strArchiveFile, rstrOutDir);
+        
+    }while(false);
+    
     fs::remove(fs::path(strArchiveFile));
+    if(m_onFinished)
+    {
+        m_onFinished(nError);
+    }
     return nError;
 }
 
@@ -209,7 +231,7 @@ int CFileUtil4Zlib::UncompressWithGrpc(const std::string& rstrIn, const std::str
     
 
     //文件进行解压缩
-    int nError = 0;
+    int nError = Errors::ERROR_NONE;
     std::unique_ptr< std::ifstream > ifsp;
     std::unique_ptr< std::ofstream > ofsp;
     do
@@ -217,7 +239,7 @@ int CFileUtil4Zlib::UncompressWithGrpc(const std::string& rstrIn, const std::str
         if(fs::is_directory(fs::path(rstrIn)))
         {
             std::cout << "file format is invalid" << std::endl;
-            nError = 1;
+            nError = Errors::INVALID_UNCOMPRESS_FILE;
             break;
         }
 
@@ -237,23 +259,17 @@ int CFileUtil4Zlib::UncompressWithGrpc(const std::string& rstrIn, const std::str
         //解压后的ar文件临时保存路径
         ofsp = std::unique_ptr< std::ofstream >(new std::ofstream(strMidFile, std::ofstream::binary));
 
-        if(fs::is_directory(fs::path(rstrIn)))
-        {
-            std::cout << "file format is invalid" << std::endl;
-            nError = 2;
-            break;   
-        }
         FileHead stHead;
         //检测文件是否有效
         CFileUtilHead::Parse(*ifsp, nError, stHead);
         if(nError != 0)
         {
-            nError = 3;
             break;
         }
+
         if(std::string(stHead.szExt) != std::string(".zb"))
         {
-            nError = 4;
+            nError = Errors::INVALID_UNCOMPRESS_FILE;
             break;
         }
 
@@ -290,7 +306,7 @@ int CFileUtil4Zlib::UncompressWithGrpc(const std::string& rstrIn, const std::str
         {
             ifsp->close();
             ofsp->close();
-            nError = 2;
+            nError = Errors::RPC_UNCOMPRESS_BUFF_ALLOC_FAILED;
             break;
         }
         ifsp->close();
@@ -302,7 +318,10 @@ int CFileUtil4Zlib::UncompressWithGrpc(const std::string& rstrIn, const std::str
     
     //删除临时文件
     fs::remove(fs::path(strMidFile));
-    std::cout << __FUNCTION__ << ", end" << std::endl;
+    if(m_onFinished)
+    {
+        m_onFinished(nError);
+    }
     return nError;
 }
 
@@ -317,7 +336,7 @@ int CFileUtil4Zlib::CompressWithMT(const std::string rstrAchiveFile, const std::
     std::vector<std::string> vecFiles;
     std::vector<std::string> vecResultFiles;
 
-    int nError = 0;
+    int nError = Errors::ERROR_NONE;
     do
     {
         
@@ -325,7 +344,7 @@ int CFileUtil4Zlib::CompressWithMT(const std::string rstrAchiveFile, const std::
         if(vecFiles.size() != dwThreadCnt)
         {
             std::cout << "vecfiles size invalid:" << vecFiles.size() << std::endl;;
-            nError = 1;
+            nError = Errors::MISMATACH_BTW_TD_AND_FILEPCS;
             break;
         }
 
@@ -457,38 +476,38 @@ void CFileUtil4Zlib::PrepareCompress(const std::vector<std::string>& rVecFiles, 
 
 int CFileUtil4Zlib::CompressFileWithZlib(const std::string& rstrSource, const std::string& rstrCompressedFile, uint64_t ullBuffSize, bool bMT)
 {
-    int nError = 0;
+    int nError = Errors::ERROR_NONE;
     char* szSource = nullptr;
     char* szCompressed = nullptr;
-    std::unique_ptr< std::ifstream > ifsp;
-    std::unique_ptr< std::ofstream > ofsp;
+    std::unique_ptr< std::ifstream > ifsp = nullptr;
+    std::unique_ptr< std::ofstream > ofsp  = nullptr;
     do
     {
         char* szSource = new char[ullBuffSize];
         if(szSource == nullptr)
         {
-            nError = 1;
+            nError = Errors::COMPRESS_INPUT_BUFF_NOT_ENOUGH;
             break;
         }
 
         char* szCompressed = new char[ullBuffSize];
         if(szCompressed == nullptr)
         {
-            nError = 2;
+            nError = Errors::COMPRESS_OUTPUT_BUFF_NOT_ENOUGH;
             break;
         }
 
         ifsp = std::unique_ptr< std::ifstream >(new std::ifstream(rstrSource, std::ifstream::binary));
         if(!ifsp->is_open())
         {
-            nError = 2;
+            nError = Errors::COMPRESS_IN_FILE_OPEN_FAILED;
             break;
         }
 
         ofsp = std::unique_ptr< std::ofstream >(new std::ofstream(rstrCompressedFile, std::ofstream::binary));
         if(!ofsp->is_open())
         {
-            nError = 3;
+            nError = Errors::COMPRESS_OUT_FILE_OPEN_FAILED;
             break;
         }
 
@@ -514,7 +533,7 @@ int CFileUtil4Zlib::CompressFileWithZlib(const std::string& rstrSource, const st
 
             if(err != 0)
             {
-                nError = 4;
+                nError = Errors::ZLIB_COMPRESS_FAILED;
                 break;
             }
             std::cout << "Compressed len: " << compressLen << std::endl;
@@ -528,52 +547,52 @@ int CFileUtil4Zlib::CompressFileWithZlib(const std::string& rstrSource, const st
 
     if(szSource) delete[] szSource;
     if(szCompressed) delete[] szCompressed;
-    if(ifsp->is_open()) ifsp->close();
-    if(ofsp->is_open()) ofsp->close();
+    if(ifsp && ifsp->is_open()) ifsp->close();
+    if(ofsp && ofsp->is_open()) ofsp->close();
 
     return nError;
 }
 
 int CFileUtil4Zlib::UncompressFileWithZlib(const std::string& rstrCompressedFile, const std::string& rstrSource)
 {
-    int nError = 0;
+    int nError = Errors::ERROR_NONE;
     char* szSource = nullptr;
     char* szCompressed = nullptr;
-    std::unique_ptr< std::ifstream > ifsp;
-    std::unique_ptr< std::ofstream > ofsp;
+    std::unique_ptr< std::ifstream > ifsp  = nullptr;
+    std::unique_ptr< std::ofstream > ofsp  = nullptr;
     do
     {
         if(fs::is_directory(fs::path(rstrCompressedFile)))
         {
-            nError = 1;
+            nError = Errors::INVALID_UNCOMPRESS_FILE;
             break;
         }
 
         char* szSource = new char[CCustomParamManager::Instance().GetBuffSize() * 10];
         if(szSource == nullptr)
         {
-            nError = 2;
+            nError = Errors::UNCOMPRESS_INPUT_BUFF_NOT_ENOUGH;
             break;
         }
 
         char* szCompressed = new char[CCustomParamManager::Instance().GetBuffSize() + 1];
         if(szCompressed == nullptr)
         {
-            nError = 3;
+            nError = Errors::UNCOMPRESS_OUTPUT_BUFF_NOT_ENOUGH;
             break;
         }
 
         ifsp = std::unique_ptr< std::ifstream >(new std::ifstream(rstrCompressedFile, std::ifstream::binary));
         if(!ifsp->is_open())
         {
-            nError = 4;
+            nError = Errors::UNCOMPRESS_IN_FILE_OPEN_FAILED;
             break;
         }
 
         ofsp = std::unique_ptr< std::ofstream >(new std::ofstream(rstrSource, std::ofstream::binary));
         if(!ofsp->is_open())
         {
-            nError = 5;
+            nError = Errors::UNCOMPRESS_OUT_FILE_OPEN_FAILED;
             break;
         }
 
@@ -582,13 +601,12 @@ int CFileUtil4Zlib::UncompressFileWithZlib(const std::string& rstrCompressedFile
         CFileUtilHead::Parse(*ifsp, nError, stHead);
         if(nError != 0)
         {
-            nError = 6;
             break;
         }
 
         if(strcmp(stHead.szExt, ".zb") != 0)
         {
-            nError = 7;
+            nError = Errors::INVALID_UNCOMPRESS_FILE;
             break;
         }
         
@@ -610,7 +628,7 @@ int CFileUtil4Zlib::UncompressFileWithZlib(const std::string& rstrCompressedFile
                        (uLongf)nZlibBlockLen);
             if(err != 0)
             {
-                nError = 8;
+                nError = Errors::ZLIB_UNCOMPRESS_FAILED;
                 break;
             }
             std::cout << "Uncompressed len: " << nUncompressLen << std::endl;
@@ -621,8 +639,8 @@ int CFileUtil4Zlib::UncompressFileWithZlib(const std::string& rstrCompressedFile
 
     if(szSource) delete[] szSource;
     if(szCompressed) delete[] szCompressed;
-    if(ifsp->is_open()) ifsp->close();
-    if(ofsp->is_open()) ofsp->close();
+    if(ifsp && ifsp->is_open()) ifsp->close();
+    if(ofsp && ofsp->is_open()) ofsp->close();
 
     return nError;
 }

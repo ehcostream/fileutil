@@ -2,6 +2,7 @@
 #include "fileutil.grpc.pb.h"
 
 #include <Constants.h>
+#include <Errors.h>
 #include "FileUtilHead.h"
 #include "SymCrypto.h"
 #include "GRPCManager.h"
@@ -34,7 +35,7 @@ int CSymCrypto::SymEncode(const std::string& rstrSource, const std::string& rstr
     std::ifstream in(rstrSource, std::ifstream::in | std::ifstream::binary);
     std::ofstream out;
     std::string strExtension(".spc");
-    int nError = 0;
+    int nError = Errors::ERROR_NONE;
     do
     {
         if(!bEncode)
@@ -48,14 +49,14 @@ int CSymCrypto::SymEncode(const std::string& rstrSource, const std::string& rstr
             if(nParseResult != 0 || std::string(stHead.szExt) != strExtension)
             {
                 //文件格式无效
-                nError = 1;
+                nError = Errors::DECODE_FILE_HEAD_PARSE_FAILED;
                 break;
             }
             std::cout << strRealKey << "<= =>" << rstrKey << std::endl;
             if(strRealKey != rstrKey)
             {
                 //密码错误
-                nError = 2;
+                nError = Errors::DECODE_PASSWD_ERROR;
                 break;
             }
             rstrOutFile = (filePath / std::string(stHead.szFilename)).string();
@@ -69,7 +70,7 @@ int CSymCrypto::SymEncode(const std::string& rstrSource, const std::string& rstr
             if(std::string(stHead.szExt) == strExtension)
             {
                 //重复加密
-                nError = 3;
+                nError = Errors::ENCODE_REPEAT;
                 break;
             }
             else
@@ -87,7 +88,7 @@ int CSymCrypto::SymEncode(const std::string& rstrSource, const std::string& rstr
         out.open(rstrOutFile, std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
         if(!out.is_open())
         {
-            nError = 4;
+            nError = Errors::CRYPTO_OUT_FILE_OPEN_FAILED;
             break;
         }
         if(bEncode)
@@ -119,6 +120,11 @@ int CSymCrypto::SymEncode(const std::string& rstrSource, const std::string& rstr
     }while(false);
     in.close();
     out.close();
+
+    if(m_onFinished)
+    {
+        m_onFinished(nError);
+    }
     return nError;
 }
 
@@ -137,7 +143,7 @@ int CSymCrypto::SymEncodeWithGrpc(const std::string& rstrSource, const std::stri
     std::ifstream in(rstrSource, std::ifstream::in | std::ifstream::binary);
     std::ofstream out;
     std::string strExtension(".spc");
-    int nError = 0;
+    int nError = Errors::ERROR_NONE;
     do
     {
         if(!bEncode)
@@ -151,14 +157,14 @@ int CSymCrypto::SymEncodeWithGrpc(const std::string& rstrSource, const std::stri
             if(nParseResult != 0 || std::string(stHead.szExt) != strExtension)
             {
                 //文件格式无效
-                nError = 1;
+                nError = Errors::DECODE_FILE_HEAD_PARSE_FAILED;
                 break;
             }
             std::cout << strRealKey << "<= =>" << rstrKey << std::endl;
             if(strRealKey != rstrKey)
             {
                 //密码错误
-                nError = 2;
+                nError = Errors::DECODE_PASSWD_ERROR;
                 break;
             }
             rstrOutFile = (filePath / std::string(stHead.szFilename)).string();
@@ -172,7 +178,7 @@ int CSymCrypto::SymEncodeWithGrpc(const std::string& rstrSource, const std::stri
             if(std::string(stHead.szExt) == strExtension)
             {
                 //重复加密
-                nError = 3;
+                nError = Errors::ENCODE_REPEAT;
                 break;
             }
             else
@@ -190,7 +196,7 @@ int CSymCrypto::SymEncodeWithGrpc(const std::string& rstrSource, const std::stri
         out.open(rstrOutFile, std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
         if(!out.is_open())
         {
-            nError = 4;
+            nError = Errors::CRYPTO_OUT_FILE_OPEN_FAILED;
             break;
         }
 
@@ -245,5 +251,10 @@ int CSymCrypto::SymEncodeWithGrpc(const std::string& rstrSource, const std::stri
     }while(false);
     in.close();
     out.close();
+
+    if(m_onFinished)
+    {
+        m_onFinished(nError);
+    }
     return nError;
 }

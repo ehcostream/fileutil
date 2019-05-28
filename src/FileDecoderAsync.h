@@ -1,10 +1,9 @@
 #pragma once 
-#include "FileUtilBase.h"
 #include "SymCrypto.h"
 
-class CFileDecoderAsync : public CFileUtilBase, public CSymCrypto
+class CFileDecoderAsync : public CSymCrypto
 {
-public:
+private:
 	int 
 	Execute(const std::vector<std::string>& rvecFiles, const std::string& rstrOutDir, void* pExParam, std::string& rstrOutFile);
 };

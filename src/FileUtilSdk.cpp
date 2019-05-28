@@ -25,3 +25,17 @@ FEXTERN void WaitAsync()
 {
 	CThreadPool::Instance().JoinAll();
 }
+
+FEXTERN void Sleep(int milliseconds)
+{
+	boost::this_thread::sleep_for(boost::chrono::milliseconds(milliseconds));
+}
+
+FEXTERN void ReleaseUtil(CFileUtilBase* base)
+{
+	if(base != nullptr)
+	{
+		delete base;
+		base = nullptr;
+	}
+}

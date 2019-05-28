@@ -1,6 +1,7 @@
 #include "FileUtilBase.h"
 #include "FileUtilHead.h"
 #include "CustomParamManager.h"
+#include <Errors.h>
 
 //进行归档的文件的头部信息
 enum FileType
@@ -20,6 +21,14 @@ struct FileInfo
     //文件路径
     char szFPath[255];
 };
+
+int CFileUtilBase::Execute(const std::vector<std::string>& rvecFiles, const std::string& rstrOutDir, void* pExParam, std::string& rstrOutFile, FallbackFunc OnFinished)
+{
+    int nError = Errors::ERROR_NONE;
+    m_onFinished = OnFinished;
+    nError = Execute(rvecFiles, rstrOutDir, pExParam, rstrOutFile);
+    return nError;
+}
 
 bool CFileUtilBase::CatStream(std::ifstream& ris, std::ofstream& ros)
 {
@@ -55,7 +64,7 @@ int CFileUtilBase::Archive(const std::vector<std::string>& rVecFile, const std::
     //可能是单个文件，多个文件，文件夹，文件+文件夹（多级目录）
     //将文件头部信息和文件内容，序列化到单个文件中
     std::cout << __FUNCTION__ << "," << CCustomParamManager::Instance().GetBuffSize() << CCustomParamManager::Instance().GetCpuCore() << std::endl;
-    int nError = 0;
+    int nError = Errors::ERROR_NONE;
     do
     {
         std::ofstream oArcFile(rstrOut, std::ofstream::binary);
@@ -66,7 +75,7 @@ int CFileUtilBase::Archive(const std::vector<std::string>& rVecFile, const std::
             fs::path path(rFile);
             if(!fs::exists(path))
             {
-                nError = 1;
+                nError = Errors::ARCHIVE_FILE_NOT_EXIST;
                 break;
             }
             else
@@ -99,7 +108,7 @@ int CFileUtilBase::Archive(const std::vector<std::string>& rVecFile, const std::
                 catch(fs::filesystem_error e)
                 {
                     std::cout << e.what() << std::endl;
-                    nError = 99;
+                    nError = Errors::ARCHIVE_FILE_SYSTEM_ERROR;
                 }
                 
             }
@@ -113,7 +122,7 @@ int CFileUtilBase::Archive(const std::vector<std::string>& rVecFile, const std::
 int CFileUtilBase::Dearchive(const std::string& rstrArchivedFile, const std::string& rstrOut)
 {
     //
-    int nError = 0;
+    int nError = Errors::ERROR_NONE;
     assert(CCustomParamManager::Instance().GetBuffSize() != 0);
 
     do
@@ -140,7 +149,7 @@ int CFileUtilBase::Dearchive(const std::string& rstrArchivedFile, const std::str
         else
         {
             //打开失败
-            nError = 1;
+            nError = Errors::ARCHIVE_FILE_SYSTEM_ERROR;
             break;
         }
         iArcFile.close();
@@ -154,6 +163,7 @@ int CFileUtilBase::Dearchive(const std::string& rstrArchivedFile, const std::str
 
 int CFileUtilBase::ArchiveOneFileOrDir(const std::string& rstrSource, const std::string& rstrRoot, std::ofstream& rofArchiveFile)
 {
+    int nError = Errors::ERROR_NONE;
     try
     {
         assert(CCustomParamManager::Instance().GetBuffSize() != 0);
@@ -230,20 +240,18 @@ int CFileUtilBase::ArchiveOneFileOrDir(const std::string& rstrSource, const std:
         {
             //DO NOT HANDLE
         }
-        return 0;
     }
     catch(...)
     {
-        return 1;
+        nError = Errors::ARCHIVE_FILE_UNKNOW_ERROR;
     }
-    
+    return nError;
 }
 
 int CFileUtilBase::DearchiveOneFileOrDir(std::ifstream& rifSource, const std::string& rstrOut)
 {
     FileInfo stFileInfo;
     memset(&stFileInfo, '\0', sizeof(stFileInfo));
-    
     rifSource.read((char*)&stFileInfo, sizeof(FileInfo));
     
     char bType = stFileInfo.bFType;
@@ -357,45 +365,51 @@ void CFileUtilBase::GetTmpMiddleFile(std::string& rstrAchiveFile, bool bAchive, 
 
 int CFileUtilBase::CutFileIntoPieces(const std::string& rstrIn, std::vector<std::string>& rVecOutFiles, uint32_t dwBlcok)
 {
-    try
-    {   
-        assert(dwBlcok > 1);
-        std::cout << "CutFile->" << rstrIn << std::endl;
-        std::ifstream inAchiFile(rstrIn, std::ifstream::binary);
-        if(!inAchiFile.is_open())
-        {
-            return 1;
-        }
-        inAchiFile.seekg(0, inAchiFile.end);
-        uint64_t ullTotalFileSize = inAchiFile.tellg();
-        uint64_t ullSizeAvg = floor(ullTotalFileSize / dwBlcok);
-        uint64_t ullLastPartSize = ullTotalFileSize - ullSizeAvg * (dwBlcok - 1);
-        //恢复文件指针
-        inAchiFile.seekg(0, inAchiFile.beg);
-        std::cout << ullTotalFileSize << std::endl;
-        for (uint32_t dwCurrent = 0; dwCurrent < dwBlcok && inAchiFile.peek() != EOF; ++dwCurrent)
-        {
-            std::string strOutFile;
-            GetTmpMiddleFile(strOutFile, true, 1);
-            std::ofstream outFile(strOutFile, std::ofstream::binary);
-            char bReadByte;
-            bool bLast = (dwCurrent == dwBlcok -1);
-            for (uint64_t ullReadBytes = 0; ullReadBytes < (bLast ? ullLastPartSize : ullSizeAvg); ++ullReadBytes)
-            {
-                inAchiFile.read(&bReadByte, sizeof(char));
-                outFile.write(&bReadByte, sizeof(char));
-            }
-            outFile.close();
-            rVecOutFiles.emplace_back(strOutFile);
-        }
-        inAchiFile.close();
-        return 0;
-    }
-    catch(...)
+    int nError = Errors::ERROR_NONE;
+    do
     {
-        return 99;
-    }
-   
+        try
+        {   
+            assert(dwBlcok > 1);
+            std::cout << "CutFile->" << rstrIn << std::endl;
+            std::ifstream inAchiFile(rstrIn, std::ifstream::binary);
+            if(!inAchiFile.is_open())
+            {
+                nError = Errors::SPLIT_IN_FILE_OPEN_FAILED;
+                break;
+            }
+            inAchiFile.seekg(0, inAchiFile.end);
+            uint64_t ullTotalFileSize = inAchiFile.tellg();
+            uint64_t ullSizeAvg = floor(ullTotalFileSize / dwBlcok);
+            uint64_t ullLastPartSize = ullTotalFileSize - ullSizeAvg * (dwBlcok - 1);
+            //恢复文件指针
+            inAchiFile.seekg(0, inAchiFile.beg);
+            std::cout << ullTotalFileSize << std::endl;
+            for (uint32_t dwCurrent = 0; dwCurrent < dwBlcok && inAchiFile.peek() != EOF; ++dwCurrent)
+            {
+                std::string strOutFile;
+                GetTmpMiddleFile(strOutFile, true, 1);
+                std::ofstream outFile(strOutFile, std::ofstream::binary);
+                char bReadByte;
+                bool bLast = (dwCurrent == dwBlcok -1);
+                for (uint64_t ullReadBytes = 0; ullReadBytes < (bLast ? ullLastPartSize : ullSizeAvg); ++ullReadBytes)
+                {
+                    inAchiFile.read(&bReadByte, sizeof(char));
+                    outFile.write(&bReadByte, sizeof(char));
+                }
+                outFile.close();
+                rVecOutFiles.emplace_back(strOutFile);
+            }
+            inAchiFile.close();
+        }
+        catch(...)
+        {
+            nError = Errors::SPLIT_FILE_UNKNOW_ERROR;
+            break;
+        }
+    }while(false);
+
+    return nError;
 }
 
 void CFileUtilBase::CombainFiles(const std::vector<std::string>& rVecInFiles, const std::string& rstrOutFile)

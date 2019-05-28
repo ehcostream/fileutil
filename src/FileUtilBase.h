@@ -2,6 +2,8 @@
 #define __FILE_UTIL_BASE__
 
 #include "FileUtil.h"
+
+typedef void (*FallbackFunc)(int ret);
 class CFileUtilBase
 {
 public:
@@ -12,8 +14,19 @@ public:
 	virtual ~CFileUtilBase() = default;
 
 public:
-	virtual int 
-	Execute(const std::vector<std::string>& rvecFiles, const std::string& rstrOutDir, void* pExParam, std::string& rstrOutFile) = 0;
+	int 
+	Execute(const std::vector<std::string>& rvecFiles, 
+            const std::string& rstrOutDir, 
+            void* pExParam, 
+            std::string& rstrOutFile, 
+            FallbackFunc OnFinished);
+
+    //执行结束回调
+    FallbackFunc m_onFinished = nullptr;
+
+private:
+    virtual int
+    Execute(const std::vector<std::string>& rvecFiles, const std::string& rstrOutDir, void* pExParam, std::string& rstrOutFile) = 0;
 
 protected:
 //常用的文件操作

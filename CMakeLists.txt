@@ -93,7 +93,6 @@ else ()
 						  ${Boost_LIBRARIES}
 						  ${_GRPC_GRPCPP_UNSECURE}
 						  ${_PROTOBUF_LIBPROTOBUF}
-
 						  )
 endif(WIN32)
 

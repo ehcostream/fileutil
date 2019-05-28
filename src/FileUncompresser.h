@@ -3,7 +3,7 @@
 
 class CFileUncompresser : public CFileUtil4Zlib
 {
-public:
+private:
 	int 
 	Execute(const std::vector<std::string>& rvecFiles, const std::string& rstrOutDir, void* pExParam, std::string& rstrOutFile);
 
