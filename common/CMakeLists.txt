@@ -4,6 +4,8 @@ aux_source_directory(. DIR_COMMON_SRCS)
 
 add_library(common SHARED ${DIR_COMMON_SRCS})
 
+set_target_properties(common PROPERTIES DEFINE_SYMBOL COMMON_DLL)
+
 install(TARGETS common LIBRARY DESTINATION lib RUNTIME DESTINATION lib ARCHIVE DESTINATION lib)
 
-install(FILES Constants.h DESTINATION include/fz)
+install(FILES cconf.h Constants.h Errors.h DESTINATION include/fz)

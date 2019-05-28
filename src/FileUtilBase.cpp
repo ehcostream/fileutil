@@ -2,7 +2,6 @@
 #include "FileUtilHead.h"
 #include "CustomParamManager.h"
 #include <Errors.h>
-
 //进行归档的文件的头部信息
 enum FileType
 {

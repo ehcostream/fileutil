@@ -6,7 +6,6 @@
 #include "fileutil.grpc.pb.h"
 #include "GlobalConfig.h"
 #include <Errors.h>
-
 using grpc::Channel;
 using grpc::ClientContext;
 using grpc::Status;
@@ -232,8 +231,8 @@ int CFileUtil4Zlib::UncompressWithGrpc(const std::string& rstrIn, const std::str
 
     //文件进行解压缩
     int nError = Errors::ERROR_NONE;
-    std::unique_ptr< std::ifstream > ifsp;
-    std::unique_ptr< std::ofstream > ofsp;
+    std::unique_ptr< std::ifstream > ifsp = nullptr;
+    std::unique_ptr< std::ofstream > ofsp = nullptr;
     do
     {
         if(fs::is_directory(fs::path(rstrIn)))
