@@ -1,22 +1,29 @@
 #include "GlobalConfig.h"
-#include <nlohmann/json.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <fstream>
 #include <iostream>
 
-using json = nlohmann::json;
+using namespace boost::property_tree;
 
 void CGlobalConfig::Read(const std::string& rstrJson)
 {
-	std::ifstream config(rstrJson);
-	std::cout << rstrJson << ", " << config.is_open() << std::endl;
-	json jc;
-	config >> jc;
-	m_strRemoteServer = jc["RemoteServer"];
-	m_bEnableLoadBalance = jc["EnableLoadBalance"];
-	m_bEnableRPC = jc["EnableRPC"];
-	m_dwMaxSendMsgSize = jc["MaxSendMsgSize"];
-	m_dwMaxRecvMsgSize = jc["MaxRecvMsgSize"];
-	m_dwFallbackTimeout = jc["FallbackTimeout"];
+	std::ifstream json(rstrJson);
+	ptree pt;
+	try
+	{
+		read_json(json, pt);
+	}
+	catch(ptree_error& e)
+	{
+		std::cout << "-----------------ptree error----------------" << std::endl;
+	}
+	m_strRemoteServer = pt.get<std::string>("RemoteServer");
+	m_bEnableLoadBalance = pt.get<bool>("EnableLoadBalance");
+	m_bEnableRPC = pt.get<bool>("EnableRPC");
+	m_dwMaxSendMsgSize = pt.get<int>("MaxSendMsgSize");
+	m_dwMaxRecvMsgSize = pt.get<int>("MaxRecvMsgSize");
+	m_dwFallbackTimeout = pt.get<int>("FallbackTimeout");
 
 	std::cout <<  m_strRemoteServer << std::endl;
 	std::cout <<  m_bEnableLoadBalance << std::endl;
