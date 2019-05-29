@@ -22,9 +22,6 @@ set(_PROTOBUF_PROTOC $<TARGET_FILE:protobuf::protoc>)
 find_package(gRPC CONFIG REQUIRED)
 message(STATUS "Using gRPC ${gRPC_VERSION}")
 
-# Find nlohmann_json
-find_package(nlohmann_json 3.2.0 REQUIRED)
-
 set(_GRPC_GRPCPP_UNSECURE gRPC::grpc++_unsecure)
 set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:gRPC::grpc_cpp_plugin>)
 
@@ -87,7 +84,6 @@ if(WIN32)
 	${ZLIB_LIBRARY}/libzlibstatic.a)
 else ()
 	target_link_libraries(fz 
-						  PRIVATE nlohmann_json::nlohmann_json
 						  common
 						  ${ZLIB_LIBRARY} 
 						  ${Boost_LIBRARIES}
