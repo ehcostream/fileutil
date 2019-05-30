@@ -25,7 +25,6 @@ public:
 
 	void JoinAll()
 	{
-		delete m_pWorkGurad.get();
 		m_pWorkGurad = nullptr;
 		m_threadPool.join_all();
 	}

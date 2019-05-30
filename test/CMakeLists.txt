@@ -2,25 +2,25 @@ file(GLOB SRC_FILES *.cpp *.h)
 project(test)
 
 if(WIN32)
-#you can set your zlib full path
-SET (ZLIB_INCLUDE_DIR "d:/zlib/include")
-SET (ZLIB_LIBRARY "d:/zlib/lib")
-#you can set your boost full path
-SET (Boost_INCLUDE_DIRS "d:/boost/include/boost-1_70")
-SET (Boost_LIBRARIES "d:/boost/lib")
-
 set(Boost_USE_STATIC_LIBS ON) 
-set(Boost_USE_STATIC_RUNTIME ON) 
 endif(WIN32)
+
+if(NOT MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O2 -Wall -Werror -z defs -mcmodel=medium")
+else()
+  add_definitions(-D_WIN32_WINNT=0x600)
+endif()
 
 find_package(ZLIB REQUIRED)
 find_package(Boost COMPONENTS system filesystem thread program_options REQUIRED)
+include_directories(common ${Boost_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR})
 
 
 if(WIN32)
-	INCLUDE_DIRECTORIES(C:/fz/include ${Boost_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR})
+	INCLUDE_DIRECTORIES(C:/fz/include)
+
 else ()
-	INCLUDE_DIRECTORIES(/usr/local/include/fz ${Boost_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR})
+	INCLUDE_DIRECTORIES(/usr/local/include/fz)
 endif(WIN32)
 add_executable(test test.cpp)
 
@@ -28,12 +28,9 @@ if(WIN32)
 	target_link_libraries(test 
 	wsock32
 	ws2_32
-	${Boost_LIBRARIES}/libboost_system-mgw81-mt-s-x64-1_70.a 
-	${Boost_LIBRARIES}/libboost_filesystem-mgw81-mt-s-x64-1_70.a 
-	${Boost_LIBRARIES}/libboost_thread-mgw81-mt-s-x64-1_70.a 
-	${Boost_LIBRARIES}/libboost_program_options-mgw81-mt-s-x64-1_70.a
-	${ZLIB_LIBRARY}/libzlibstatic.a
-	C:/fz/lib/libfz.dll.a
+	${ZLIB_LIBRARY} 
+	${Boost_LIBRARIES}
+	C:/fz/lib/fz.lib
 	)
 else ()
 	target_link_libraries(test /usr/local/lib/libfz.so /usr/local/lib/libcommon.so ${ZLIB_LIBRARY} ${Boost_LIBRARIES} )

@@ -15,7 +15,7 @@ public:
 	virtual ~CFileUtilBase() = default;
 
 public:
-	int 
+	virtual int 
 	Execute(const std::vector<std::string>& rvecFiles, 
             const std::string& rstrOutDir, 
             void* pExParam, 

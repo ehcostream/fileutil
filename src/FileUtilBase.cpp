@@ -25,7 +25,26 @@ int CFileUtilBase::Execute(const std::vector<std::string>& rvecFiles, const std:
 {
     int nError = Errors::ERROR_NONE;
     m_onFinished = OnFinished;
-    nError = Execute(rvecFiles, rstrOutDir, pExParam, rstrOutFile);
+
+    bool bExist = true;
+    for(const auto& file : rvecFiles)
+    {
+        if(!fs::exists(file))
+        {
+            bExist = false;
+            break;
+        }
+    }
+    if(rvecFiles.size() <= 0 || !bExist)
+    {
+        nError = Errors::INPUT_PATH_NOT_EXIST;
+        m_onFinished(nError);
+    }
+    else
+    {
+        nError = Execute(rvecFiles, rstrOutDir, pExParam, rstrOutFile);    
+    }
+    
     return nError;
 }
 

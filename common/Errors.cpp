@@ -9,6 +9,9 @@ CEXTERN const int FILESYSTEM_ERROR                                = 50001;  //�
 CEXTERN const int ARCHIVE_FILE_UNKNOW_ERROR                       = 50002;  //归档文件未知错误
 CEXTERN const int SPLIT_FILE_UNKNOW_ERROR                         = 50003;  //切割文件位置错误
 
+//-------------------通用错误(20000~30000)-------------------
+CEXTERN const int INPUT_PATH_NOT_EXIST                            = 20000;  //输入路径不存在
+
 //-------------------压缩相关错误(10001~10100)-------------------
 CEXTERN const int INVALID_COMPRESS_FILE                           = 10001;  //无效的压缩文件
 CEXTERN const int RPC_COMPRESS_BUFF_ALLOC_FAILED                  = 10002;  //RPC压缩内存申请失败

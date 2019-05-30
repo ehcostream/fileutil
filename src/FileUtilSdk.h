@@ -19,7 +19,7 @@ namespace futil
 	FEXTERN void WaitAsync();
 
 //sleep
-	FEXTERN void Sleep(int milliseconds);
+	FEXTERN void SleepInAWhile(int milliseconds);
 }
 
 #endif

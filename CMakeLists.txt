@@ -30,6 +30,15 @@ set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:gRPC::grpc_cpp_plugin>)
 get_filename_component(hw_proto "./protos/fileutil.proto" ABSOLUTE)
 get_filename_component(hw_proto_path "${hw_proto}" PATH)
 
+find_package(ZLIB REQUIRED)
+
+if(WIN32)
+set(Boost_USE_STATIC_LIBS ON) 
+endif(WIN32)
+
+find_package(Boost COMPONENTS system filesystem thread program_options REQUIRED)
+include_directories(common ${Boost_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR} ${gRPC_ROOT}/include ${PROTOBUF_INCLUDE_DIRS})
+
 # Generated sources
 set(hw_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/fileutil.pb.cc")
 set(hw_proto_hdrs "${CMAKE_CURRENT_BINARY_DIR}/fileutil.pb.h")
@@ -48,40 +57,22 @@ add_custom_command(
 # Include generated *.pb.h files
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 
-if(WIN32)
-#you can set your zlib full path
-SET (ZLIB_INCLUDE_DIR "d:/zlib/include")
-SET (ZLIB_LIBRARY "d:/zlib/lib")
-#you can set your boost full path
-SET (Boost_INCLUDE_DIRS "d:/boost/include/boost-1_70")
-SET (Boost_LIBRARIES "d:/boost/lib")
-
-set(Boost_USE_STATIC_LIBS ON) 
-set(Boost_USE_STATIC_RUNTIME ON) 
-endif(WIN32)
-
-find_package(ZLIB REQUIRED)
-
-find_package(Boost COMPONENTS system filesystem thread program_options REQUIRED)
-
-include_directories(common ${Boost_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR})
-
 add_subdirectory(common)
 
 add_library(fz SHARED ${SRC_FILES} ${hw_proto_srcs} ${hw_grpc_srcs})
 
-#add_library(fzstaic STATIC ${SRC_FILES})
+#add_library(fz STATIC ${SRC_FILES} ${hw_proto_srcs} ${hw_grpc_srcs})
 
 if(WIN32)
 	target_link_libraries(fz 
 	wsock32
 	ws2_32
 	common
-	${Boost_LIBRARIES}/libboost_system-mgw81-mt-s-x64-1_70.a 
-	${Boost_LIBRARIES}/libboost_filesystem-mgw81-mt-s-x64-1_70.a 
-	${Boost_LIBRARIES}/libboost_thread-mgw81-mt-s-x64-1_70.a 
-	${Boost_LIBRARIES}/libboost_program_options-mgw81-mt-s-x64-1_70.a
-	${ZLIB_LIBRARY}/libzlibstatic.a)
+	${Boost_LIBRARIES}
+	${ZLIB_LIBRARY}
+	${_GRPC_GRPCPP_UNSECURE}
+	${_PROTOBUF_LIBPROTOBUF}
+	)
 else ()
 	target_link_libraries(fz 
 						  common
@@ -97,6 +88,10 @@ set_target_properties(fz PROPERTIES DEFINE_SYMBOL FILEUTIL_DLL)
 set_target_properties(fz PROPERTIES VERSION 1.2 SOVERSION 1)
 
 install(TARGETS fz LIBRARY DESTINATION lib RUNTIME DESTINATION lib ARCHIVE DESTINATION lib)
+
+#you can uncomment if you need
+#install the runtime lib on the execute application directory for testing
+#install(TARGETS fz RUNTIME DESTINATION D:/fileutil/test/bld/Release)
 
 install(FILES src/FileUtilSdk.h
 			  src/fconf.h 

@@ -1,6 +1,6 @@
 {
     "EnableRPC" : false,
-    "RemoteServer" : "0.0.0.0:8000",
+    "RemoteServer" : "192.168.9.188:8000",
     "EnableLoadBalance" : true,
     "MaxSendMsgSize" : 2097152,
     "MaxRecvMsgSize" : 10485760,

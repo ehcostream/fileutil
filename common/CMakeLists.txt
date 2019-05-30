@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 aux_source_directory(. DIR_COMMON_SRCS)
 
-add_library(common SHARED ${DIR_COMMON_SRCS})
+add_library(common STATIC ${DIR_COMMON_SRCS})
 
 set_target_properties(common PROPERTIES DEFINE_SYMBOL COMMON_DLL)
 

@@ -138,7 +138,7 @@ int CFileUtilHead::GetData(const std::string& rstrFile, FileHead& rstHead)
 	int nError = Errors::ERROR_NONE;
 	do
 	{
-		if(fs::is_directory(fs::path(rstrFile)))
+		if(fs::is_directory(fs::path(rstrFile)) || !fs::exists(fs::path(rstrFile)))
 		{
 			nError = Errors::PARSE_FILE_INVALID;
 			break;

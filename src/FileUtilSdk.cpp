@@ -26,7 +26,7 @@ FEXTERN void WaitAsync()
 	CThreadPool::Instance().JoinAll();
 }
 
-FEXTERN void Sleep(int milliseconds)
+FEXTERN void SleepInAWhile(int milliseconds)
 {
 	boost::this_thread::sleep_for(boost::chrono::milliseconds(milliseconds));
 }
