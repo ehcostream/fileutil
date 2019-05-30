@@ -20,7 +20,7 @@ if(WIN32)
 	INCLUDE_DIRECTORIES(C:/fz/include)
 
 else ()
-	INCLUDE_DIRECTORIES(/usr/local/include/fz)
+	INCLUDE_DIRECTORIES(/usr/local/include)
 endif(WIN32)
 add_executable(test test.cpp)
 
@@ -33,5 +33,5 @@ if(WIN32)
 	C:/fz/lib/fz.lib
 	)
 else ()
-	target_link_libraries(test /usr/local/lib/libfz.so /usr/local/lib/libcommon.so ${ZLIB_LIBRARY} ${Boost_LIBRARIES} )
+	target_link_libraries(test /usr/local/lib/libfz.so /usr/local/lib/libcommon.a ${ZLIB_LIBRARY} ${Boost_LIBRARIES} )
 endif(WIN32)

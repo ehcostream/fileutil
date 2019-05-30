@@ -47,12 +47,6 @@ add_custom_command(
 # Include generated *.pb.h files
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 
-if(WIN32)
-#you can set your zlib full path
-SET (ZLIB_INCLUDE_DIR "d:/zlib/include")
-SET (ZLIB_LIBRARY "d:/zlib/lib")
-endif(WIN32)
-
 find_package(ZLIB REQUIRED)
 
 add_library(fileservice SHARED ${SRC_FILES} ${hw_proto_srcs} ${hw_grpc_srcs})
@@ -60,8 +54,7 @@ add_library(fileservice SHARED ${SRC_FILES} ${hw_proto_srcs} ${hw_grpc_srcs})
 if(WIN32)
 	target_link_libraries(fileservice
                         wsock32 
-                        ws2_32
-	                      ${ZLIB_LIBRARY}/libzlibstatic.a)
+                        ws2_32)
 else ()
 	target_link_libraries(fileservice 
               /usr/local/lib/libcommon.so

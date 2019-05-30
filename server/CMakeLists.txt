@@ -70,18 +70,6 @@ add_custom_command(
 # Include generated *.pb.h files
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 
-if(WIN32)
-#you can set your zlib full path
-SET (ZLIB_INCLUDE_DIR "d:/zlib/include")
-SET (ZLIB_LIBRARY "d:/zlib/lib")
-#you can set your boost full path
-SET (Boost_INCLUDE_DIRS "d:/boost/include/boost-1_70")
-SET (Boost_LIBRARIES "d:/boost/lib")
-
-set(Boost_USE_STATIC_LIBS ON) 
-set(Boost_USE_STATIC_RUNTIME ON) 
-endif(WIN32)
-
 find_package(ZLIB REQUIRED)
 
 find_package(Boost COMPONENTS system filesystem thread program_options REQUIRED)
@@ -89,13 +77,7 @@ find_package(Boost COMPONENTS system filesystem thread program_options REQUIRED)
 add_executable(server ${SRC_FILES} ${hw_proto_srcs} ${hw_grpc_srcs})
 
 if(WIN32)
-	target_link_libraries(server wsock32 ws2_32)
-	target_link_libraries(server 
-	${Boost_LIBRARIES}/libboost_system-mgw81-mt-s-x64-1_70.a 
-	${Boost_LIBRARIES}/libboost_filesystem-mgw81-mt-s-x64-1_70.a 
-	${Boost_LIBRARIES}/libboost_thread-mgw81-mt-s-x64-1_70.a 
-	${Boost_LIBRARIES}/libboost_program_options-mgw81-mt-s-x64-1_70.a
-	${ZLIB_LIBRARY}/libzlibstatic.a)
+	#TODO
 else ()
 	target_link_libraries(server 
               -lpthread

@@ -5,7 +5,7 @@ file(GLOB COMMON_FILES common/*.h common/*.cpp)
 project(fileutil/src)
 
 if(NOT MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O2 -Wall -Werror -z defs -mcmodel=medium")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -O2 -Wall -Werror -z defs -mcmodel=medium")
 else()
   add_definitions(-D_WIN32_WINNT=0x600)
 endif()
