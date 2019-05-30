@@ -39,7 +39,6 @@ DEFINE_string(server, "0.0.0.0:8000", "IP Address of server");
 DEFINE_string(lib_dir, "", "The directory of dynamic library");
 DEFINE_bool(load_balancer, false, "Whether open the load banlance or not");
 
-//TODO 需要关闭SO
 
 bool GetAllSoFiles(const std::string& rstrPath, std::vector<std::string>& rstSoFilesPath)
 {

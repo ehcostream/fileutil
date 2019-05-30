@@ -37,7 +37,12 @@ set(Boost_USE_STATIC_LIBS ON)
 endif(WIN32)
 
 find_package(Boost COMPONENTS system filesystem thread program_options REQUIRED)
+
+if(WIN32)
 include_directories(common ${Boost_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR} ${gRPC_ROOT}/include ${PROTOBUF_INCLUDE_DIRS})
+else()
+include_directories(common ${Boost_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR})
+endif(WIN32)
 
 # Generated sources
 set(hw_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}/fileutil.pb.cc")
@@ -63,13 +68,14 @@ add_library(fz SHARED ${SRC_FILES} ${hw_proto_srcs} ${hw_grpc_srcs})
 
 #add_library(fz STATIC ${SRC_FILES} ${hw_proto_srcs} ${hw_grpc_srcs})
 
+
 if(WIN32)
 	target_link_libraries(fz 
 	wsock32
 	ws2_32
 	common
 	${Boost_LIBRARIES}
-	${ZLIB_LIBRARY}
+	${ZLIB_ROOT}/lib/zlibstatic.lib
 	${_GRPC_GRPCPP_UNSECURE}
 	${_PROTOBUF_LIBPROTOBUF}
 	)
@@ -91,7 +97,9 @@ install(TARGETS fz LIBRARY DESTINATION lib RUNTIME DESTINATION lib ARCHIVE DESTI
 
 #you can uncomment if you need
 #install the runtime lib on the execute application directory for testing
-#install(TARGETS fz RUNTIME DESTINATION D:/fileutil/test/bld/Release)
+if(WIN32)
+install(TARGETS fz RUNTIME DESTINATION D:/fileutil/test/bld/Release)
+endif(WIN32)
 
 install(FILES src/FileUtilSdk.h
 			  src/fconf.h 
@@ -100,4 +108,4 @@ install(FILES src/FileUtilSdk.h
 			  src/Uncopyable.h
 			  src/FileUtilGeneratorInterface.h
 			  src/FileUtil.h 
-			  DESTINATION include/fz)
+			  DESTINATION include)
