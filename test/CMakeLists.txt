@@ -12,7 +12,7 @@ include_directories(common)
 
 
 if(WIN32)
-	INCLUDE_DIRECTORIES(C:/fz/include)
+	INCLUDE_DIRECTORIES(C:/futil/include)
 
 else ()
 	INCLUDE_DIRECTORIES(/usr/local/include)
@@ -23,8 +23,8 @@ if(WIN32)
 	target_link_libraries(test 
 	wsock32
 	ws2_32
-	C:/fz/lib/fz.lib
+	C:/futil/lib/futil.lib
 	)
 else ()
-	target_link_libraries(test /usr/local/lib/libfz.so /usr/local/lib/libcommon.a)
+	target_link_libraries(test /usr/local/lib/libfutil.so /usr/local/lib/libcommon.a)
 endif(WIN32)

@@ -64,13 +64,13 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 
 add_subdirectory(common)
 
-add_library(fz SHARED ${SRC_FILES} ${hw_proto_srcs} ${hw_grpc_srcs})
+add_library(futil SHARED ${SRC_FILES} ${hw_proto_srcs} ${hw_grpc_srcs})
 
-#add_library(fz STATIC ${SRC_FILES} ${hw_proto_srcs} ${hw_grpc_srcs})
+#add_library(futil STATIC ${SRC_FILES} ${hw_proto_srcs} ${hw_grpc_srcs})
 
 
 if(WIN32)
-	target_link_libraries(fz 
+	target_link_libraries(futil 
 	wsock32
 	ws2_32
 	common
@@ -80,7 +80,7 @@ if(WIN32)
 	${_PROTOBUF_LIBPROTOBUF}
 	)
 else ()
-	target_link_libraries(fz 
+	target_link_libraries(futil 
 						  common
 						  ${ZLIB_LIBRARY} 
 						  ${Boost_LIBRARIES}
@@ -89,16 +89,16 @@ else ()
 						  )
 endif(WIN32)
 
-set_target_properties(fz PROPERTIES DEFINE_SYMBOL FILEUTIL_DLL)
+set_target_properties(futil PROPERTIES DEFINE_SYMBOL FILEUTIL_DLL)
 
-set_target_properties(fz PROPERTIES VERSION 1.2 SOVERSION 1)
+set_target_properties(futil PROPERTIES VERSION 1.2 SOVERSION 1)
 
-install(TARGETS fz LIBRARY DESTINATION lib RUNTIME DESTINATION lib ARCHIVE DESTINATION lib)
+install(TARGETS futil LIBRARY DESTINATION lib RUNTIME DESTINATION lib ARCHIVE DESTINATION lib)
 
 #you can uncomment if you need
 #install the runtime lib on the execute application directory for testing
 if(WIN32)
-install(TARGETS fz RUNTIME DESTINATION D:/fileutil/test/bld/Release)
+install(TARGETS futil RUNTIME DESTINATION D:/fileutil/test/bld/Release)
 endif(WIN32)
 
 install(FILES src/FileUtilSdk.h
@@ -108,4 +108,4 @@ install(FILES src/FileUtilSdk.h
 			  src/Uncopyable.h
 			  src/FileUtilGeneratorInterface.h
 			  src/FileUtil.h 
-			  DESTINATION include)
+			  DESTINATION include/futil)

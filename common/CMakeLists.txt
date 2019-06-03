@@ -8,4 +8,4 @@ set_target_properties(common PROPERTIES DEFINE_SYMBOL COMMON_DLL)
 
 install(TARGETS common LIBRARY DESTINATION lib RUNTIME DESTINATION lib ARCHIVE DESTINATION lib)
 
-install(FILES cconf.h Constants.h Errors.h DESTINATION include)
+install(FILES cconf.h Constants.h Errors.h DESTINATION include/futil)
