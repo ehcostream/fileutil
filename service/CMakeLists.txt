@@ -47,8 +47,6 @@ add_custom_command(
 # Include generated *.pb.h files
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 
-find_package(ZLIB REQUIRED)
-
 add_library(fileservice SHARED ${SRC_FILES} ${hw_proto_srcs} ${hw_grpc_srcs})
 
 if(WIN32)
@@ -58,7 +56,6 @@ if(WIN32)
 else ()
 	target_link_libraries(fileservice 
               /usr/local/lib/libcommon.so
-						  ${ZLIB_LIBRARY} 
 						  ${_GRPC_GRPCPP_UNSECURE}
 						  ${_PROTOBUF_LIBPROTOBUF}
 						  )
