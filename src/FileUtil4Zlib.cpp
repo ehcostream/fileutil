@@ -1,11 +1,18 @@
+#include <grpcpp/grpcpp.h>
+#include <zlib.h>
+#include <boost/filesystem.hpp>
+#include <Errors.h>
+#include <boost/thread/thread.hpp>
+
 #include "FileUtil4Zlib.h"
 #include "FileUtilHead.h"
 #include "CustomParamManager.h"
 #include "GRPCManager.h"
-#include <grpcpp/grpcpp.h>
 #include "fileutil.grpc.pb.h"
 #include "GlobalConfig.h"
-#include <Errors.h>
+
+
+namespace fs = boost::filesystem;
 using grpc::Channel;
 using grpc::ClientContext;
 using grpc::Status;

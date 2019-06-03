@@ -8,6 +8,9 @@
 #include "GRPCManager.h"
 #include "GlobalConfig.h"
 #include "CustomParamManager.h"
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+
 
 using grpc::Channel;
 using grpc::ClientContext;

@@ -2,6 +2,9 @@
 #include "FileUtilHead.h"
 #include "CustomParamManager.h"
 #include <Errors.h>
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+
 //进行归档的文件的头部信息
 enum FileType
 {
