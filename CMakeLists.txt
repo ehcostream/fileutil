@@ -36,7 +36,7 @@ if(WIN32)
 set(Boost_USE_STATIC_LIBS ON) 
 endif(WIN32)
 
-find_package(Boost COMPONENTS system filesystem thread program_options REQUIRED)
+find_package(Boost COMPONENTS filesystem thread REQUIRED)
 
 if(WIN32)
 include_directories(common ${Boost_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR} ${gRPC_ROOT}/include ${PROTOBUF_INCLUDE_DIRS})
