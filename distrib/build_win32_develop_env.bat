@@ -12,7 +12,7 @@ cd %BOOST_DIR%
 @rem build the boost with required libraries include thread,filesystem,date_time,and install them into c:\boost
 call bootstrap.bat --prefix=c:\boost
 @rem default compile the boost with msvc14.0(VS2015) in x64 mode
-.\b2.exe toolset=msvc-14.0 address-model=64 architecture=x86 threading=multi --build-type=minimal --with-date_time --with-filesystem --with-thread link=static runtime-link=static -j8 install
+.\b2.exe toolset=msvc-14.0 address-model=32 architecture=x86 threading=multi --build-type=minimal --with-date_time --with-filesystem --with-thread link=static -j8 install
 @rem return the original position
 cd /d %~dp0
 @rem Clone the gRPC repository (including submodules)

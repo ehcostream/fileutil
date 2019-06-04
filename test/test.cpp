@@ -72,16 +72,16 @@ int main()
 	//加密
 	encoder = base->CreateEncoder();
 	files.clear();
-	files.emplace_back("./CMakeLists.txt");
+	files.emplace_back("../CMakeCache.txt");
 	encoder->Execute(files, "./crypto1", (void*)"hello", strOutFile, OnFinished);
 	futil::SleepInAWhile(500);
 	std::cout << "---------------------ASYNC ENCODE FINISHED--------------------" << std::endl;
 	
 	//解密
-	decoder = base->CreateDecoder("./crypto1/CMakeLists.txt.spc");
+	decoder = base->CreateDecoder("./crypto1/CMakeCache.txt.spc");
 	assert(decoder != nullptr);
 	files.clear();
-	files.emplace_back("./crypto1/CMakeLists.txt.spc");
+	files.emplace_back("./crypto1/CMakeCache.txt.spc");
 	decoder->Execute(files, "./crypto1", (void*)"hello", strOutFile, OnFinished);
 	std::cout << "---------------------ASYNC DECODE FINISHED--------------------" << std::endl;
 

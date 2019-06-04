@@ -13,3 +13,4 @@ src/zlibwrapper/*.o
 *.o
 lib/*
 bld/*
+build/*
