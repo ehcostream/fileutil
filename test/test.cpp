@@ -12,11 +12,11 @@ int main()
 {
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
 	std::string strJson = "../../conf.json";
-	std::string strCompressFile = "../../../bld";
+	std::string strCompressFile = "../../../build";
 	std::string strEncodeFile = "../CMakeCache.txt";
 #elif defined(__linux) || defined(__linux__) || defined(linux)
 	std::string strJson = "../conf.json";
-	std::string strCompressFile = "../../bld";
+	std::string strCompressFile = "../../build";
 	std::string strEncodeFile = "./CMakeCache.txt";
 #else
 #endif

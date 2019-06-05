@@ -17,6 +17,9 @@ set -ex
 
 cd "$(dirname "$0")/grpc"
 
+# Install libssl-dev
+apt-get install libssl-dev
+
 # Install c-ares
 cd third_party/cares/cares
 git fetch origin
@@ -51,4 +54,3 @@ mkdir -p cmake/build
 cd cmake/build
 cmake -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF -DgRPC_PROTOBUF_PROVIDER=package -DgRPC_ZLIB_PROVIDER=package -DgRPC_CARES_PROVIDER=package -DgRPC_SSL_PROVIDER=package -DCMAKE_BUILD_TYPE=Release ../..
 make -j4 install
-cd ../..

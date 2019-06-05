@@ -55,7 +55,7 @@ if(WIN32)
                         ws2_32)
 else ()
 	target_link_libraries(fileservice 
-              /usr/local/lib/libcommon.so
+              libcommon.a
 						  ${_GRPC_GRPCPP_UNSECURE}
 						  ${_PROTOBUF_LIBPROTOBUF}
 						  )

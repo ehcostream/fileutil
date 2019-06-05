@@ -4,6 +4,15 @@ SET(EXECUTABLE_OUTPUT_PATH .)
 file(GLOB SRC_FILES *.h *.cpp)
 project(server)
 
+
+find_path(GFLAGS_INCLUDE_PATH gflags/gflags.h)
+find_library(GFLAGS_LIBRARY NAMES gflags libgflags)
+if((NOT GFLAGS_INCLUDE_PATH) OR (NOT GFLAGS_LIBRARY))
+    message(FATAL_ERROR "Fail to find gflags")
+endif()
+include_directories(${GFLAGS_INCLUDE_PATH})
+
+
 execute_process(
     COMMAND bash -c "grep \"namespace [_A-Za-z0-9]\\+ {\" ${GFLAGS_INCLUDE_PATH}/gflags/gflags_declare.h | head -1 | awk '{print $2}' | tr -d '\n'"
     OUTPUT_VARIABLE GFLAGS_NS
@@ -29,13 +38,6 @@ endif()
 find_package(gRPC CONFIG REQUIRED)
 message(STATUS "Using gRPC ${gRPC_VERSION}")
 
-
-find_path(GFLAGS_INCLUDE_PATH gflags/gflags.h)
-find_library(GFLAGS_LIBRARY NAMES gflags libgflags)
-if((NOT GFLAGS_INCLUDE_PATH) OR (NOT GFLAGS_LIBRARY))
-    message(FATAL_ERROR "Fail to find gflags")
-endif()
-include_directories(${GFLAGS_INCLUDE_PATH})
 
 
 set(_GRPC_GRPCPP_UNSECURE gRPC::grpc++_unsecure)
