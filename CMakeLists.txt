@@ -32,11 +32,9 @@ get_filename_component(hw_proto_path "${hw_proto}" PATH)
 
 find_package(ZLIB REQUIRED)
 
-if(WIN32)
-set(Boost_USE_STATIC_LIBS ON) 
-endif(WIN32)
+set(Boost_USE_STATIC_LIBS ON)
 
-find_package(Boost COMPONENTS filesystem thread REQUIRED)
+find_package(Boost COMPONENTS system filesystem thread date_time chrono REQUIRED)
 
 if(WIN32)
 include_directories(common ${Boost_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR} ${gRPC_ROOT}/include ${PROTOBUF_INCLUDE_DIRS})
@@ -82,8 +80,12 @@ if(WIN32)
 else ()
 	target_link_libraries(futil 
 						  common
-						  ${ZLIB_LIBRARY} 
-						  ${Boost_LIBRARIES}
+						  ${ZLIB_LIBRARY}
+						  libboost_chrono.a
+						  libboost_date_time.a
+						  libboost_filesystem.a
+						  libboost_thread.a
+						  libboost_system.a
 						  ${_GRPC_GRPCPP_UNSECURE}
 						  ${_PROTOBUF_LIBPROTOBUF}
 						  )
