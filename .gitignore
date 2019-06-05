@@ -1,16 +1,4 @@
 bin/*
-CMakeFiles/*
-cmake_install.cmake
-CMakeCache.txt
-Makefile
-src/zlibwrapper/cmake_install.cmake
-src/zlibwrapper/CMakeCache.txt
-src/zlibwrapper/Makefile
-src/zlibwrapper/CMakeFiles/*
-src/zlibwrapper/*.a
-src/zlibwrapper/*.o
-*.a
-*.o
 lib/*
 bld/*
 build/*
