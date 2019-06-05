@@ -34,10 +34,10 @@ int main()
 	std::cout << "---------------------COMPRESS FINISHED--------------------" << std::endl;
 
 	//解压
-	CFileUtilBase* uncompresser = base->CreateUncompresser("./bld.ar.zb");
+	CFileUtilBase* uncompresser = base->CreateUncompresser("./build.ar.zb");
 	assert(uncompresser != nullptr);
 	files.clear();
-	files.emplace_back("./bld.ar.zb");
+	files.emplace_back("./build.ar.zb");
 	uncompresser->Execute(files, "./tmp", nullptr, strOutFile, OnFinished);
 	std::cout << "---------------------UNCOMPRESS FINISHED--------------------" << std::endl;
 
@@ -73,9 +73,9 @@ int main()
 	std::cout << "---------------------ASYNC COMPRESS FINISHED--------------------" << std::endl;
 
 	//解压
-	uncompresser = base->CreateUncompresser("./bld.ar.zb");
+	uncompresser = base->CreateUncompresser("./build.ar.zb");
 	files.clear();
-	files.emplace_back("./bld.ar.zb");
+	files.emplace_back("./build.ar.zb");
 	uncompresser->Execute(files, "./tmp1", nullptr, strOutFile, OnFinished);
 	futil::SleepInAWhile(500);
 	std::cout << "---------------------ASYNC UNCOMPRESS FINISHED--------------------" << std::endl;
