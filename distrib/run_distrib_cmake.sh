@@ -18,7 +18,7 @@ set -ex
 cd "$(dirname "$0")/grpc"
 
 # Install libssl-dev
-apt-get install libssl-dev
+apt-get install -y libssl-dev
 
 # Install c-ares
 cd third_party/cares/cares
