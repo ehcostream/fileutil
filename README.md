@@ -1,136 +1,123 @@
-# README.md
-## 功能介绍
-filetuil是一款基于zlib的deflate压缩算法的c++工具库，此外，还提供了加密/解密的功能。
+FILEUTIL - 使用指南
+===========================
 
-`主要功能如下`
+# 准备工作
 
-* 多文件（夹）归档
-* 多文件（夹）压缩，解压
-* 多线程压缩
-* 文件加密，解密
-
-## 如何工作
-**压缩的工作流程**
-
-1. 将多个文件进行归档为单个文件
-2. 将单个文件读取到ifstream中
-3. 将ifstream中的内容输出到zio::ofstream中
-4. zio::ofstream申请一个2*size大小的压缩流缓存区in_buffer/out_buffer
-5. 初始化in_buffer，读取ifstream中到内容，压缩到out_buffer中去，当out_buffer达到size大小了，将结果输出到文件流中
-6. 循环5步骤，直到zlib压缩函数deflate返回Z_STREAM_END,Z_BUF_ERROR或者out_buffer已经没有可写的内容
-7. 压缩结束
-
-**多线程压缩**
-
-1. 将多个文件进行归档为单个文件
-2. 根据指定的cpu数目n，切割为n子文件
-3. 开启n个线程，并根据缓存区大小为每个线程平均分配合适的缓存区大小
-4. 每个线程执行**压缩的工作流程**的2，3，4，5，6，7步骤
-5. 等待所有线程结束
-6. 重组所有线程结果并输出到最终的压缩文件中去
-7. 压缩结束
-
-**加密/解谜**
-
-1. 读取单个文件
-2. 判断是否为加密文件，如果已经加密则直接退出。
-3. 如果为加密，则首先写入加密头信息（加密文件后缀名+原始文件名称）
-4. 将文件中的字节流进行取反
-5. 输出加密/解谜文件
-
-## 编译并使用源码
-### linux
-#### 安装boost
-从官网下载boost1.69.0
+## Linux
+输入以下命令安装依赖环境
+```sh
+ $ [sudo] apt-get install wget
+ $ [sudo] apt-get install build-essential autoconf libtool pkg-config
+ $ [sudo] apt-get install python3 python3-dev golang
 ```
-wget https://dl.bintray.com/boostorg/release/1.69.0/source/boost_1_69_0.tar.gz
+```sh
+ $ [sudo] apt-get install libgflags-dev libgtest-dev
+ $ [sudo] apt-get install clang libc++-dev
 ```
 
-解压
-```
-tar xvf boost_1_69_0.tar.gz
+## Windows
+
+项目使用cmake + msvc14.0进行编译，安装以下应用
+- 安装 [Visual Studio 2015]()  (依赖 Visual C++ 编译器).
+- 安装 [Git](https://git-scm.com/) 添加到 `PATH` 环境变量中
+- 安装 [CMake](https://cmake.org/download/). 选择自动添加到 `PATH` 环境变量中
+- 安装 [Active State Perl](https://www.activestate.com/activeperl/)
+- 安装 [Go](https://golang.org/dl/) 
+- 安装 [yasm](http://yasm.tortall.net/) 添加到 `PATH` 环境变量中
+
+
+# 从Git拉取源代码 
+从git上拉取 `fileutil`源代码 (windows打开命令行工具，或者powershell)
+```sh
+$ git clone https://github.com/ehcostream/fileutil.git
 ```
 
-进入boost目录
+# 部署开发环境
+
+## Docker
+可以直接拉取已经配置完成的镜像文件，进行**编译**和**使用**
+- 需要安装docker(自行安装)，windows请在powershell或者CMD命令行工具中执行
+```sh
+docker login
+docker pull ehcostream/ubuntu:fileutil
+docker run -it ehcostream/ubuntu:fileutil
 ```
-执行sudo ./bootstrap.sh
+这样就进入生成的容器中了，已经安装所有依赖项，可以直接进行**编译**和**使用**
+```sh
+$ cd /home/spectrum/Work/fileutil
+$ git pull --rebase
+```
+编译步骤参考Linux
+
+## Linux
+### 安装依赖库
+```sh
+$ [sudo] ./fileutil/distrib/build_linux_develop_env.sh
+```
+这个脚本将会编译和安装**boost**，**grpc**和它所依赖的第三方库cares，zlib，openssl，protobuf.
+等待脚本执行完成，项目所依赖的开发环境就构建完成，由于**GFW**的原因，建议使用**VPN**加速，正常下载比较缓慢
+### 编译
+```sh
+$ [sudo] ./build.sh
+```
+编译完成后头生成文件和库文件
+- /usr/local/include/futil
+- /usr/local/lib/libfutil.so
+
+## Windows
+### 安装依赖库(建议使用powershell，使用Administrator启动)
+```sh
+PS .\fileutil\distrib\build_win32_develop_env.bat
+```
+### 编译
+```sh
+PS .\win32_build.bat
 ```
 
-安装boost
+编译完成后头生成文件和库文件
+- c:\futil\include
+- c:\futil\lib
+
+# 使用
+主要有以下功能
+
+- 压缩
+- 解压
+- 加密
+- 解密
+- 异步压缩
+- 异步解压
+- 异步加密
+- 异步解密
+
+详细使用方法参考test/test.cpp源码
+
+## Linux
+### 编译example
+进入test目录
+```sh
+$ cd test
+$ mkdir build && cd build && cmake .. && make
 ```
-sudo ./b2 --build-type=minimal cxxflags="-std=c++11" --with-thread --with-system --with-filesystem --with-program_options install
+```sh
+./test
+```
+### 依赖项
+linux上运行依赖**libcares.so**,**libz.so**，移植时需要一并移植
+
+## Windows
+### 编译example
+打开powershell，进入项目所在目录
+```sh
+PS cd test
+PS mkdir build && cd build
+PS cmake .. -G"Visual Stuido 14 2015"
+PS cmake --build --config Release
+```
+执行
+```sh
+.\Release\test.exe
 ```
 
-#### 安装zlib
-下载zlib1.2.11
-```
-wget https://www.zlib.net/zlib-1.2.11.tar.gz
-```
-
-解压
-```
-tar xvf zlib-1.2.11.tar.gz
-```
-
-进入zlib目录
-```
-./configure
-```
-
-编译&安装
-```
-sudo make && make install
-```
-
-#### 编译zlibutil
-进入zlibutil目录
-```
-cmake . & make
-```
-
-看到bin目录下生成`fz`代表编译成功
-
-### windows
-#### 安装boost
-浏览器输入https://dl.bintray.com/boostorg/release/1.69.0/source/boost_1_69_0.zip从官网下载boost1.69.0
-解压后，打开boost根目录，以管理员身份执行bootstrap.bat，会生成b2，然后双击b2开始安装boost
-
-#### 安装zlib
-下载zlib1.2.11官网地址https://www.zlib.net/zlib-1.2.11.tar.gz
-编译和解压方法参考https://blog.csdn.net/u011740322/article/details/51207809
-
-#### cmake和mingw安装
-参考https://www.cnblogs.com/herelsp/p/8679200.html#_label2
-
-#### 编译zlibutil
-进入zlibutil目录
-```
-cmake . & make
-```
-
-## 如何使用
-压缩
-```
-./bin/fz -c [filename1 filename2 ... n] [directory1 directory2... n] -o directory
-```
-
-解压
-```
-./bin/fz -u compressed_filename -o directory
-```
-
-加密
-```
-./bin/fz -e compressed_filename -o directory -k password
-```
-
-解密
-```
-./bin/fz -d encoded_filename -o directory -k password
-```
-
-异步模式(只支持压缩/解压或者加密/解密)
-```
-./bin/fz --async
-```
-#zlibutil
+### 依赖项
+windwos运行时仅依赖**futil.dll**，需要拷贝到程序运行目录
