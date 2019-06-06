@@ -1,0 +1,6 @@
+*
+!conf.json
+!*.cpp
+!*.h
+!CMakeLists.txt
+!.gitignore

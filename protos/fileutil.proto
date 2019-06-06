@@ -1,0 +1,47 @@
+syntax = "proto3";
+package fileutil;
+
+service CompressService
+{
+	rpc s_compress (stream CompressReq) returns (stream CompressRes) {}
+}
+
+message CompressReq
+{
+	bytes source = 1;
+}
+
+message CompressRes
+{
+	bytes compressed = 1;
+}
+
+service UncompressService
+{
+	rpc s_uncompress (stream UncompressReq) returns (stream UncompressRes) {}
+}
+
+message UncompressReq
+{
+	bytes compressed = 1;
+}
+
+message UncompressRes
+{
+	bytes uncompressed = 1;
+}
+
+service CryptoService
+{
+	rpc s_crypto (stream CryptoReq) returns (stream CryptoRes) {}
+}
+
+message CryptoReq
+{
+	bytes source = 1;
+}
+
+message CryptoRes
+{
+	bytes result = 1;
+}
