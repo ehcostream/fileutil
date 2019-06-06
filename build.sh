@@ -2,5 +2,5 @@
 mkdir build
 cd build
 cmake ..
-cmake --build . --config Release --target install
+make -j8 install
 echo Project has been built successfully!
